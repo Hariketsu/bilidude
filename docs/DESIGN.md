@@ -147,12 +147,13 @@ lib/
 ## 7. LLM 层
 
 - `@earendil-works/pi-ai`，按 provider 子路径导入以控制体积；`models.stream()` 流式，`AbortController` 支持停止。
-- **BYOK**：Key 存 `chrome.storage.local`（不进 sync）。通过 pi-ai 的 `CredentialStore` 注入。
-- **Provider 列表**：MVP 内置 OpenAI、Anthropic、Google、OpenRouter、DeepSeek，加「自定义 OpenAI 兼容端点」。模型下拉用 pi-ai 的模型目录。
+- **BYOK**：Key 按 provider 存 `chrome.storage.local`（不进 sync），每次请求显式传 `apiKey`，不用 pi-ai 的 `CredentialStore`。
+- **Provider 列表**：MVP 内置 OpenAI、Anthropic、Google、OpenRouter、DeepSeek（`createModels` 只注册这几个），加「自定义 OpenAI 兼容端点」（直接调 `openai-completions` API 实现，上下文窗口按 128k 估）。模型下拉用 pi-ai 的模型目录，不预设默认模型（目录按字母排序，模型 id 也会过时）。
 - **Host 权限**：内置 provider 的域名写进 `host_permissions`；自定义 baseUrl 走 `optional_host_permissions` 运行时申请。
-- **Thinking**：pi-ai 的 `thinking_*` 事件 → 推理步骤里的可展开内容与 “Thought for N seconds”。
-- **上下文预算**：用 `model.contextWindow` 估算；字幕超出预算时 MVP 只提示（「视频过长，当前模型放不下」），长视频方案见 `TODO.md`。
-- 待验证：Anthropic 浏览器直连所需的 `anthropic-dangerous-direct-browser-access` 头是否由 pi-ai 自动携带。
+- **Thinking**：支持推理的模型用 `reasoning: 'low'`（总结类任务不需要深推理，响应更快）。`thinking_*` 事件 → 可展开的 “Thought for N seconds”。
+- **上下文预算**：system prompt 的 token 估算（CJK 1 字 ≈ 1 token，其余 4 字符 ≈ 1 token）+ 16k 余量超过 `model.contextWindow` 时只提示「视频过长，当前模型放不下」，长视频方案见 `TODO.md`。
+- Anthropic 浏览器直连所需的 `anthropic-dangerous-direct-browser-access` 头由 pi-ai 自动携带（已确认）。
+- **历史**：每轮回答保存 pi-ai 返回的原始 `AssistantMessage`，追问时原样回放；失败的回答及其提问不进历史。
 
 ## 8. Prompt 与上下文
 
@@ -177,7 +178,7 @@ lib/
 参考 Dia：模型直接在句末 / 引文末写时间 `[03:05]`（与字幕行同格式），渲染为时间戳 chip。
 
 - **时间校验**：解析出的秒数吸附到不晚于它的最近一行字幕的起点；超出视频时长或早于首行字幕的引用直接丢弃（不渲染成会跳错的 chip）。
-- **引文校验**：引用块（`> …`）以其后的时间为锚点，在锚点所在行及前后各 2 行的拼接文本里做模糊匹配（规整空白与标点后的子串匹配）；不通过则降级为普通段落样式（不当作原话）。
+- **引文校验**：引用块（`> …`）以其后的时间为锚点，在锚点所在行的前 2 行到后 4 行（引文可能跨行）的拼接文本里做模糊匹配；`…` 表示省略，各片段须按顺序出现（规整空白与标点后的子串匹配）；不通过则降级为普通段落样式（不当作原话）。
 - 流式时未闭合的 `[03:0` 暂不渲染，等闭合后再替换。
 - 存储里保存模型原文（本身已是可读时间，复制无需转换）。
 

@@ -1,3 +1,5 @@
+import type { AssistantMessage as PiAssistantMessage } from '@earendil-works/pi-ai';
+
 export interface VideoRef {
   bvid: string;
   aid: number;
@@ -37,14 +39,29 @@ export type PresetId = 'recap' | 'toc' | 'quotes';
 /** Progress shown above an answer while it is being produced. */
 export type AnswerPhase = 'reading' | 'transcribing' | 'thinking' | 'writing';
 
-export type Message =
-  | { id: string; role: 'user'; video?: VideoRef; preset?: PresetId; text: string }
-  | {
-      id: string;
-      role: 'assistant';
-      text: string;
-      status: 'streaming' | 'done' | 'aborted' | 'error';
-      phase?: AnswerPhase;
-      thoughtMs?: number;
-      video: VideoRef;
-    };
+export type UserMessage = {
+  id: string;
+  role: 'user';
+  /** Attached to the first message of a session. */
+  video?: VideoRef;
+  preset?: PresetId;
+  text: string;
+  /** Exactly what the model received for this turn (preset instructions, playback position). */
+  prompt: string;
+};
+
+export type AssistantMessage = {
+  id: string;
+  role: 'assistant';
+  video: VideoRef;
+  status: 'streaming' | 'done' | 'aborted' | 'error';
+  phase?: AnswerPhase;
+  text: string;
+  thinking?: string;
+  thoughtMs?: number;
+  error?: string;
+  /** The provider's message, replayed as history in later turns. */
+  llm?: PiAssistantMessage;
+};
+
+export type Message = UserMessage | AssistantMessage;

@@ -1,13 +1,14 @@
 import { Copy, RotateCw } from 'lucide-react';
 import { trimPartialTimestamp } from '@/lib/timestamp';
-import type { Message } from '@/lib/types';
+import type { Citations } from '@/lib/citations';
+import type { AssistantMessage as AssistantMsg, UserMessage as UserMsg } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
 import { IconButton } from './IconButton';
 import { Markdown } from './Markdown';
 import { PresetChip } from './PresetChip';
 import { ThinkingSteps, ThoughtSummary } from './ThinkingSteps';
 
-export function UserMessage({ message }: { message: Extract<Message, { role: 'user' }> }) {
+export function UserMessage({ message }: { message: UserMsg }) {
   return (
     <div className="flex flex-col items-end gap-4">
       {message.video && <AttachmentCard video={message.video} />}
@@ -27,10 +28,12 @@ export function UserMessage({ message }: { message: Extract<Message, { role: 'us
 
 export function AssistantMessage({
   message,
+  citations,
   onSeek,
   onRegenerate,
 }: {
-  message: Extract<Message, { role: 'assistant' }>;
+  message: AssistantMsg;
+  citations?: Citations;
   onSeek?: (seconds: number) => void;
   onRegenerate?: () => void;
 }) {
@@ -38,26 +41,19 @@ export function AssistantMessage({
   const preparing = streaming && message.phase !== 'writing';
   const text = streaming ? trimPartialTimestamp(message.text) : message.text;
 
+  if (preparing) return <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} />;
+
   return (
     <div>
-      {preparing ? (
-        <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} />
-      ) : (
-        <>
-          {message.thoughtMs !== undefined && <ThoughtSummary thoughtMs={message.thoughtMs} />}
-          {message.status === 'error' ? (
-            <p className="text-[15px] text-fg-muted">{message.text}</p>
-          ) : (
-            <Markdown text={text} onSeek={onSeek} />
-          )}
-          {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">Stopped.</p>}
-          {!streaming && (
-            <div className="mt-3 flex gap-1">
-              <IconButton icon={Copy} label="Copy" onClick={() => navigator.clipboard.writeText(message.text)} />
-              <IconButton icon={RotateCw} label="Regenerate" onClick={onRegenerate} />
-            </div>
-          )}
-        </>
+      {message.thoughtMs !== undefined && <ThoughtSummary thoughtMs={message.thoughtMs} thinking={message.thinking} />}
+      {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
+      {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">Stopped.</p>}
+      {message.error && <p className="mt-2 text-[15px] text-fg-muted">{message.error}</p>}
+      {!streaming && (
+        <div className="mt-3 flex gap-1">
+          {text && <IconButton icon={Copy} label="Copy" onClick={() => navigator.clipboard.writeText(message.text)} />}
+          <IconButton icon={RotateCw} label="Regenerate" onClick={onRegenerate} />
+        </div>
       )}
     </div>
   );
