@@ -14,6 +14,14 @@ export const env = {
     model: process.env.E2E_LLM_MODEL ?? '',
     baseUrl: process.env.E2E_LLM_BASE_URL ?? '',
   },
+  asr: {
+    provider: process.env.E2E_ASR_PROVIDER ?? '',
+    apiKey: process.env.E2E_ASR_API_KEY ?? '',
+    model: process.env.E2E_ASR_MODEL ?? '',
+    baseUrl: process.env.E2E_ASR_BASE_URL ?? '',
+    dashscopeRegion: process.env.E2E_ASR_DASHSCOPE_REGION || 'cn-beijing',
+    dashscopeWorkspace: process.env.E2E_ASR_DASHSCOPE_WORKSPACE ?? '',
+  },
   bilibili: {
     sessdata: process.env.E2E_BILIBILI_SESSDATA ?? '',
     bvid: process.env.E2E_BILIBILI_BVID ?? '',
@@ -146,4 +154,20 @@ export async function mockLlm(context: BrowserContext, answer: string) {
     return route.fulfill({ status: 200, contentType: 'text/event-stream', body });
   });
   return requests;
+}
+
+/** Pretends Bilibili has no subtitles for any video. */
+export async function mockNoSubtitles(context: BrowserContext) {
+  await context.route(/\/x\/player\/(wbi\/)?v2\?/, (route) =>
+    route.fulfill({ json: { code: 0, data: { subtitle: { subtitles: [] }, view_points: [] } } }),
+  );
+}
+
+/** Merges ASR settings into what `configure` wrote. */
+export async function configureAsr(panel: Page, asr: Record<string, unknown>) {
+  await panel.evaluate(async (asr) => {
+    const storage = (globalThis as unknown as { chrome: typeof browser }).chrome.storage.local;
+    const { settings } = (await storage.get('settings')) as { settings: Record<string, unknown> };
+    await storage.set({ settings: { ...settings, asr: { enabled: true, trigger: 'ask', ...asr } } });
+  }, asr);
 }

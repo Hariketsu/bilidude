@@ -1,5 +1,5 @@
 // Deterministic UI tests: subtitles and the LLM are mocked, so these always run.
-import { ask, chipSeconds, configure, expect, MOCK_LLM, mockLlm, mockSubtitles, openPanel, test } from './fixtures';
+import { ask, chipSeconds, configure, expect, MOCK_LLM, mockLlm, mockNoSubtitles, mockSubtitles, openPanel, test } from './fixtures';
 
 test('asks to open a video when the active tab is not one', async ({ context, extensionId }) => {
   const panel = await context.newPage();
@@ -79,9 +79,7 @@ test('follow-ups carry history and the playback position', async ({ context, ext
 });
 
 test('explains when a video has no subtitles', async ({ context, extensionId }) => {
-  await context.route(/\/x\/player\/(wbi\/)?v2\?/, (route) =>
-    route.fulfill({ json: { code: 0, data: { subtitle: { subtitles: [] }, view_points: [] } } }),
-  );
+  await mockNoSubtitles(context);
   const { panel } = await openPanel(context, extensionId);
   await configure(panel, MOCK_LLM);
 
