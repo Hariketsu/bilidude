@@ -1,9 +1,23 @@
-import ReactMarkdown, { type Components } from 'react-markdown';
+import { useMemo } from 'react';
+import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { Citations } from '@/lib/citations';
 import { remarkTimestamps } from '@/lib/remark-timestamps';
 import { TimestampChip } from './TimestampChip';
 
-export function Markdown({ text, onSeek }: { text: string; onSeek?: (seconds: number) => void }) {
+export function Markdown({
+  text,
+  citations,
+  onSeek,
+}: {
+  text: string;
+  citations?: Citations;
+  onSeek?: (seconds: number) => void;
+}) {
+  const remarkPlugins = useMemo<Options['remarkPlugins']>(
+    () => [remarkGfm, [remarkTimestamps, { citations }]],
+    [citations],
+  );
   const components = {
     h1: ({ children }) => <h1 className="mt-2 mb-3 text-[22px] leading-snug font-bold">{children}</h1>,
     h2: ({ children }) => <h2 className="mt-7 mb-2 text-lg leading-snug font-bold">{children}</h2>,
@@ -11,8 +25,9 @@ export function Markdown({ text, onSeek }: { text: string; onSeek?: (seconds: nu
     p: ({ children }) => <p className="my-3">{children}</p>,
     ul: ({ children }) => <ul className="my-3 list-disc space-y-1 pl-6">{children}</ul>,
     ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>,
+    // A quote and its translation are two lines of one paragraph; keep them on separate lines.
     blockquote: ({ children }) => (
-      <blockquote className="my-4 border-l-2 border-fg-muted/60 pl-5 text-fg-muted [&>p]:my-1">
+      <blockquote className="my-4 border-l-2 border-fg-muted/60 pl-5 text-fg-muted [&>p]:my-1 [&>p]:whitespace-pre-line">
         {children}
       </blockquote>
     ),
@@ -23,12 +38,14 @@ export function Markdown({ text, onSeek }: { text: string; onSeek?: (seconds: nu
       </a>
     ),
     code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 text-[0.9em]">{children}</code>,
+    // A blockquote whose text isn't in the transcript: shown as plain prose, not as the speaker's words.
+    'bd-paraphrase': ({ children }: { children?: React.ReactNode }) => <div className="my-3 [&>p]:my-1 [&>p]:whitespace-pre-line">{children}</div>,
     'bd-timestamp': ({ seconds }: { seconds?: string }) => <TimestampChip seconds={Number(seconds)} onSeek={onSeek} />,
   } as Components; // `bd-timestamp` comes from remarkTimestamps
 
   return (
     <div className="text-[15px] leading-7 text-fg">
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkTimestamps]} components={components}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
         {text}
       </ReactMarkdown>
     </div>
