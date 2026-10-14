@@ -72,12 +72,12 @@ export async function loginBilibili(context: BrowserContext, sessdata: string) {
 }
 
 /**
- * Opens a video and the side panel page next to it. The panel follows the active tab,
- * so the video tab is brought to front afterwards.
+ * Opens a video (a BV id, or a legacy `av123` id) and the side panel page next to it.
+ * The panel follows the active tab, so the video tab is brought to front afterwards.
  */
-export async function openPanel(context: BrowserContext, extensionId: string, bvid = DEFAULT_BVID) {
+export async function openPanel(context: BrowserContext, extensionId: string, videoId = DEFAULT_BVID) {
   const video = context.pages()[0] ?? (await context.newPage());
-  await video.goto(`https://www.bilibili.com/video/${bvid}/`, { waitUntil: 'domcontentloaded' });
+  await video.goto(`https://www.bilibili.com/video/${videoId}/`, { waitUntil: 'domcontentloaded' });
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await video.bringToFront();

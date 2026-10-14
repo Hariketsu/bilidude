@@ -8,6 +8,14 @@ test('asks to open a video when the active tab is not one', async ({ context, ex
   await expect(panel.getByText('Open a Bilibili video to start')).toBeVisible();
 });
 
+test('recognizes legacy av links', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  // av80433022 is the default test video, BV1GJ411x7h7.
+  const { panel } = await openPanel(context, extensionId, 'av80433022');
+  await configure(panel, MOCK_LLM);
+  await expect(panel.getByText('Never Gonna Give You Up').first()).toBeVisible();
+});
+
 test('setup form connects a model', async ({ context, extensionId }) => {
   await mockSubtitles(context);
   const { panel } = await openPanel(context, extensionId);

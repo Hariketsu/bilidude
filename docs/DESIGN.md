@@ -108,7 +108,7 @@ lib/
 
 ## 4. 视频识别
 
-- 支持 URL：`/video/BVxxx?p=N`、`/list/...?bvid=BVxxx&p=N`。
+- 支持 URL：`/video/BVxxx?p=N`、旧式 `/video/av123?p=N`、`/list/...?bvid=BVxxx&p=N`。av 号在本地按 B 站算法换算成 BV 号（覆盖 2^51 以内的全部 aid），两种链接对应同一个视频身份。
 - `cid`：调 `x/web-interface/view?bvid=` 拿 `pages[]`，按 `p` 取 `cid`（同时拿到标题、UP 主、简介、封面、时长、分 P 标题）。
 - B 站是 SPA：换片 / 换 P 只改 URL，由 `tabs.onUpdated` 感知（§3.2）。
 - **视频身份 = `bvid + cid`**，会话、字幕缓存、ASR 缓存都以此为键。
