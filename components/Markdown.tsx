@@ -22,12 +22,12 @@ export function Markdown({
     h1: ({ children }) => <h1 className="mt-2 mb-3 text-[22px] leading-snug font-bold">{children}</h1>,
     h2: ({ children }) => <h2 className="mt-7 mb-2 text-lg leading-snug font-bold">{children}</h2>,
     h3: ({ children }) => <h3 className="mt-6 mb-2 text-base font-bold">{children}</h3>,
-    p: ({ children }) => <p className="my-3">{children}</p>,
+    // Models use single newlines as line breaks (a TOC chip above its summary, a quote above its translation).
+    p: ({ children }) => <p className="my-3 whitespace-pre-line">{children}</p>,
     ul: ({ children }) => <ul className="my-3 list-disc space-y-1 pl-6">{children}</ul>,
     ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>,
-    // A quote and its translation are two lines of one paragraph; keep them on separate lines.
     blockquote: ({ children }) => (
-      <blockquote className="my-4 border-l-2 border-fg-muted/60 pl-5 text-fg-muted [&>p]:my-1 [&>p]:whitespace-pre-line">
+      <blockquote className="my-4 border-l-2 border-fg-muted/60 pl-5 text-fg-muted [&>p]:my-1">
         {children}
       </blockquote>
     ),
@@ -40,7 +40,7 @@ export function Markdown({
     code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 text-[0.9em]">{children}</code>,
     // A blockquote whose text isn't in the transcript: shown as plain prose, not as the speaker's words.
     'bd-paraphrase': ({ children }: { children?: React.ReactNode }) => (
-      <div data-paraphrase className="my-3 [&>p]:my-1 [&>p]:whitespace-pre-line">
+      <div data-paraphrase className="my-3 [&>p]:my-1">
         {children}
       </div>
     ),
