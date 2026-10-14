@@ -5,6 +5,7 @@ import {
   type BiliSubtitleLine,
   type BiliSubtitleTrack,
 } from './bili/api';
+import { loadStoredTranscript, storeTranscript } from './db';
 import type { Chapter, Transcript, TranscriptLine, VideoRef } from './types';
 
 /** Target length of one merged line sent to the model (docs/DESIGN.md §5.1). */
@@ -16,7 +17,7 @@ const DURATION_TOLERANCE_SECONDS = 30;
 
 const cache = new Map<string, Promise<Transcript | null>>();
 
-/** Loads (once per part) the transcript of a video; `null` when it has no usable subtitles. */
+/** Loads (once per part, cached in IndexedDB) the transcript of a video; `null` when it has no usable subtitles. */
 export function getTranscript(video: VideoRef): Promise<Transcript | null> {
   const key = `${video.bvid}:${video.cid}`;
   let pending = cache.get(key);
@@ -30,6 +31,15 @@ export function getTranscript(video: VideoRef): Promise<Transcript | null> {
 }
 
 async function loadTranscript(video: VideoRef): Promise<Transcript | null> {
+  const key = `${video.bvid}:${video.cid}`;
+  const stored = await loadStoredTranscript(key);
+  if (stored) return stored;
+  const transcript = await fetchTranscript(video);
+  if (transcript) await storeTranscript(key, transcript);
+  return transcript;
+}
+
+async function fetchTranscript(video: VideoRef): Promise<Transcript | null> {
   const { tracks, chapters } = await fetchPlayerInfo(video.aid, video.cid, video.bvid);
   const mergedChapters = chapters.length > 0 ? chapters : parseAuthorChapters(video.desc);
 
