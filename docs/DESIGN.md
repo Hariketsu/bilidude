@@ -76,8 +76,7 @@
 | 上下文 | 职责 |
 |---|---|
 | **Side Panel**（扩展页） | 全部 UI；会话状态；识别当前视频（读 active tab 的 URL）；跳转与读取播放位置（`scripting.executeScript`）；调用 LLM（pi-ai 直连 provider）；调用 B 站 API；读写 IndexedDB |
-| **Background SW** | 打开 side panel；管理 offscreen 文档生命周期；ASR 任务调度 |
-| **Offscreen 文档** | ASR：下载音频、解码、切片、调用 ASR API。side panel 关闭也能跑完 |
+| **Background SW** | 打开 side panel；注册网络规则（音频 CDN 的 Referer、必剪接口的 Origin） |
 
 为什么 LLM 调用放在 side panel：扩展页直连 provider 不受 CORS 预检限制、也不受 SW 生命周期限制（BiliScript ADR-0010 踩过这两个坑）。代价：关闭面板会中断生成，已生成部分保存为 `aborted`，可一键重新生成（已确认接受）。
 
@@ -85,14 +84,12 @@
 
 - **识别视频**：side panel 读本窗口 active tab 的 URL（B 站 host 权限即可读到），监听 `tabs.onActivated` 与 `tabs.onUpdated`（B 站换片只改 URL，同样触发）。
 - **跳转 / 播放位置**：`scripting.executeScript` 在页面里直接读写 `video.currentTime`。不依赖常驻脚本，扩展更新后已打开的页面也能用。
-- **ASR 消息**：panel → bg：`asr:start { bvid, cid }`、`asr:status` 订阅；bg → offscreen：`asr:run`。
 
 ### 3.3 目录结构（计划）
 
 ```
 entrypoints/
   background.ts
-  offscreen/            ASR 宿主
   sidepanel/            UI 入口
 components/             React 组件
 lib/
@@ -136,13 +133,17 @@ lib/
 
 ## 6. ASR
 
-- **触发**：当前视频无可用字幕，且设置里 ASR 已配置并启用时自动开始。时机是设置项：默认「首次提问时」（发送预设或消息时开始，推理步骤显示进度）；可选「面板打开时」（面板在该视频上打开，或面板开着时切到该视频）。面板未打开时从不转写。
-- **音频**：`x/player/wbi/playurl?bvid&cid&fnval=16` 取 DASH 音频，选最低码率；`bilivideo` CDN 需要 Referer，用 declarativeNetRequest 规则设为 `https://www.bilibili.com/`（借 Bilitato `rules.json`）。
-- **处理**（offscreen）：解码 → 重采样 16kHz 单声道 → 按 5 分钟切片、相邻片重叠数秒 → WAV 编码。借 BiliScript `asr/chunker.ts`、`wav-encode.ts` 与 Bilitato `asrChunking.js` 的重叠去重。
-- **调用**：OpenAI 兼容 `/audio/transcriptions`，`response_format=verbose_json` 取 segment 时间戳；语言自动检测。一个适配器覆盖 Groq / OpenAI / 硅基流动（baseUrl + model 不同）。并发 2，单片失败重试 2 次。
-- **合并**：片内时间加片偏移，重叠区去重 → 与字幕同构的 `{from, to, content}[]`。
-- **缓存**：按 `bvid + cid` 存 IndexedDB，同一视频不重复转写。
-- **进度**：bg 广播 `asr:status { done, total }`，panel 显示在推理步骤里；panel 重开或切回该视频时恢复显示。
+- **触发**：当前视频无可用字幕，且设置里 ASR 已启用时自动开始。时机是设置项：默认「首次提问时」（推理步骤显示进度）；可选「面板打开时」（面板在该视频上打开，或面板开着时切到该视频）。面板未打开时从不转写。
+- **宿主：side panel**（已确认，替代原 offscreen 方案）。关闭面板即中断，但已完成的分片按 `bvid:cid:provider:model:片长:序号` 存 IndexedDB，下次从断点继续。同一视频同时只有一个转写任务，提问方共享其进度。
+- **音频**：`x/player/playurl?fnval=16` 取 DASH 音轨，只选 **AAC-LC**（`mp4a.40.2`）里码率最低的一条——最低码率常是 HE-AAC（`mp4a.40.5`），其帧不能直接包成普通 ADTS。CDN 地址 `*.bilivideo.com` 优先（PCDN 节点更易失败）。CDN 要求 bilibili.com 的 Referer，由 background 注册的 session 网络规则补上，只作用于本扩展发起的请求。
+- **切片**：fMP4 → AAC 帧（加 ADTS 头，参考 BiliScript `asr/adts.ts`）→ 按帧数切片，切片不需要解码。片长：必剪 10 分钟；有时间戳的服务 5 分钟（DashScope 单次上限）；无时间戳的服务 1 分钟。
+- **服务**：
+  - **必剪（免费，默认）**：B 站必剪的语音识别（移植自 bcut-asr）：申请上传 → 分片 PUT（读 ETag）→ 提交 → 建任务 → 轮询（2s 起逐步退到 10s）。直接上传 AAC。接口拒绝 `chrome-extension://` Origin（412），由网络规则改写为 `https://www.bilibili.com`。**按 IP 风控**：请求过密会整段时间返回 412，此时明确提示稍后再试或换服务，不自动重试。
+  - **OpenAI 兼容**（OpenAI whisper-1、Groq whisper-large-v3-turbo、自定义）：每片分 ~40 秒段解码为 16kHz 单声道（Chrome 解码过长 ADTS 会失败），编码 WAV，`/audio/transcriptions` + `verbose_json` 取句级时间戳。
+  - **阿里云百炼**：HTTP 非实时接口（默认 `fun-asr-flash-2026-06-15`），AAC 直接以 base64 data URI 上传，`X-DashScope-SSE: enable` 收各句 `sentence_end` 结果（毫秒时间戳）。支持业务空间域名或共享域名。实时 WebSocket 模型不接：浏览器 WebSocket 不能带 `Authorization` 头，且须按实时速度推流。
+  - **硅基流动**：只返回文本。按标点切句，按字数比例在 1 分钟片内估算时间；字幕标记为时间近似，prompt 中告知模型。
+- **合并**：片内时间加片偏移 → 与字幕同一套规整（§5.1）→ 存为该视频的字幕（`source: 'asr'`）。
+- **失败**：单片网络错误 / 5xx / 429 重试 2 次；其余错误直接显示在回答里。
 
 ## 7. LLM 层
 
@@ -222,10 +223,11 @@ Transcript { key: `${bvid}:${cid}`, source: 'cc'|'ai'|'asr', lang,
 ## 12. 权限
 
 ```
-permissions: sidePanel, storage, scripting, offscreen, declarativeNetRequest
+permissions: sidePanel, storage, scripting, declarativeNetRequestWithHostAccess
 host_permissions:
   *://www.bilibili.com/*, *://api.bilibili.com/*, *://*.hdslb.com/*,
-  *://*.bilivideo.com/*, *://*.bilivideo.cn/*,
+  *://*.bilivideo.com/*, *://*.bilivideo.cn/*（音频），
+  https://member.bilibili.com/*, *://*.biliapi.net/*（必剪；上传地址是 http），
   内置 LLM / ASR provider 域名
 optional_host_permissions: https://*/*（自定义端点）
 ```
@@ -236,5 +238,5 @@ optional_host_permissions: https://*/*（自定义端点）
 2. 视频识别 + 字幕获取 + 跳转
 3. pi-ai 接入 + 设置 / 首次引导 + 预设与追问 + 引用协议
 4. 会话持久化 + 历史列表
-5. ASR
+5. ASR（含必剪、OpenAI 兼容、阿里云百炼、硅基流动）
 
