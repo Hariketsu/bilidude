@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+
+/* Dark mode is driven by the `dark` class on <html> (see lib/theme.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --bd-bg: #f4f6f9;
+  --bd-surface: #ffffff;
+  --bd-surface-raised: #e8ebef;
+  --bd-icon-tile: #ffffff;
+  --bd-border: rgb(0 0 0 / 0.06);
+  --bd-fill-hover: rgb(0 0 0 / 0.06);
+  --bd-fg: #1d1f23;
+  --bd-fg-muted: #6e737b;
+  --bd-accent: #0a6fae;
+  --bd-bili: #fb7299;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --bd-bg: #1c1f23;
+  --bd-surface: #2b2c2e;
+  --bd-surface-raised: #3a3b3d;
+  --bd-icon-tile: #000000;
+  --bd-border: rgb(255 255 255 / 0.08);
+  --bd-fill-hover: rgb(255 255 255 / 0.1);
+  --bd-fg: #ececec;
+  --bd-fg-muted: #9a9ea5;
+  --bd-accent: #1aa3d9;
+  --bd-bili: #fb7299;
+}
+
+@theme inline {
+  --color-bg: var(--bd-bg);
+  --color-surface: var(--bd-surface);
+  --color-surface-raised: var(--bd-surface-raised);
+  --color-icon-tile: var(--bd-icon-tile);
+  --color-border: var(--bd-border);
+  --color-fill-hover: var(--bd-fill-hover);
+  --color-fg: var(--bd-fg);
+  --color-fg-muted: var(--bd-fg-muted);
+  --color-accent: var(--bd-accent);
+  --color-bili: var(--bd-bili);
+}
+
+body {
+  font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* "Thinking…" label: a highlight sweeping across muted text. */
+.shimmer-text {
+  background: linear-gradient(
+      90deg,
+      var(--bd-fg-muted) 0%,
+      var(--bd-fg-muted) 40%,
+      var(--bd-fg) 50%,
+      var(--bd-fg-muted) 60%,
+      var(--bd-fg-muted) 100%
+    )
+    0 0 / 300% 100%;
+  background-clip: text;
+  color: transparent;
+  width: fit-content;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
