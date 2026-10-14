@@ -106,6 +106,7 @@ export async function configure(panel: Page, llm: LlmConfig, outputLanguage = 'e
           },
           outputLanguage,
           theme: 'system',
+          sessionPolicy: 'new',
         },
       }),
     { llm, outputLanguage },
@@ -127,4 +128,22 @@ export async function ask(panel: Page, { preset, text }: { preset?: string; text
 export async function chipSeconds(scope: Page | ReturnType<Page['locator']>): Promise<number[]> {
   const values = await scope.locator('[data-seconds]').evaluateAll((els) => els.map((el) => el.getAttribute('data-seconds')));
   return values.map(Number);
+}
+
+/** Settings for tests that mock the LLM (see `mockLlm`). */
+export const MOCK_LLM: LlmConfig = { provider: 'deepseek', apiKey: 'sk-test', model: 'deepseek-flash' };
+
+/** Streams `answer` as an OpenAI-compatible chat completion for MOCK_LLM; returns the request bodies. */
+export async function mockLlm(context: BrowserContext, answer: string) {
+  const requests: any[] = [];
+  const chunk = (delta: object, finish: string | null = null) =>
+    `data: ${JSON.stringify({ id: 'x', object: 'chat.completion.chunk', created: 0, model: MOCK_LLM.model, choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
+  await context.route('https://api.deepseek.com/**', (route) => {
+    requests.push(route.request().postDataJSON());
+    let body = chunk({ reasoning_content: 'Reading the transcript first.' });
+    for (let i = 0; i < answer.length; i += 40) body += chunk({ content: answer.slice(i, i + 40) });
+    body += chunk({}, 'stop') + 'data: [DONE]\n\n';
+    return route.fulfill({ status: 200, contentType: 'text/event-stream', body });
+  });
+  return requests;
 }

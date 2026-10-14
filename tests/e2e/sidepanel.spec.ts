@@ -1,23 +1,5 @@
 // Deterministic UI tests: subtitles and the LLM are mocked, so these always run.
-import type { BrowserContext } from '@playwright/test';
-import { ask, chipSeconds, configure, expect, mockSubtitles, openPanel, test } from './fixtures';
-
-const MOCK_LLM = { provider: 'deepseek', apiKey: 'sk-test', model: 'deepseek-flash' };
-
-/** Streams `answer` as an OpenAI-compatible chat completion and records request bodies. */
-async function mockLlm(context: BrowserContext, answer: string) {
-  const requests: any[] = [];
-  const chunk = (delta: object, finish: string | null = null) =>
-    `data: ${JSON.stringify({ id: 'x', object: 'chat.completion.chunk', created: 0, model: MOCK_LLM.model, choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
-  await context.route('https://api.deepseek.com/**', (route) => {
-    requests.push(route.request().postDataJSON());
-    let body = chunk({ reasoning_content: 'Reading the transcript first.' });
-    for (let i = 0; i < answer.length; i += 40) body += chunk({ content: answer.slice(i, i + 40) });
-    body += chunk({}, 'stop') + 'data: [DONE]\n\n';
-    return route.fulfill({ status: 200, contentType: 'text/event-stream', body });
-  });
-  return requests;
-}
+import { ask, chipSeconds, configure, expect, MOCK_LLM, mockLlm, mockSubtitles, openPanel, test } from './fixtures';
 
 test('asks to open a video when the active tab is not one', async ({ context, extensionId }) => {
   const panel = await context.newPage();
