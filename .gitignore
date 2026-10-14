@@ -32,3 +32,6 @@ ref/
 .env.local
 test-results/
 playwright-report/
+
+# Local handoff notes
+HANDOFF.md
