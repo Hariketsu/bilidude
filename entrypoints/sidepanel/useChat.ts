@@ -1,6 +1,7 @@
 import type { Context, Message as PiMessage } from '@earendil-works/pi-ai';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCitations } from '@/lib/citations';
+import { saveSession, videoKeyOf, type Session } from '@/lib/db';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
 import { resolveModel, streamChat } from '@/lib/llm/providers';
 import { resolveOutputLanguage, type Settings } from '@/lib/settings';
@@ -10,6 +11,8 @@ import type { AssistantMessage, Message, PresetId, Transcript, VideoRef } from '
 
 /** Headroom kept free of the transcript for the conversation and the answer. */
 const RESERVED_TOKENS = 16_000;
+/** A streaming answer is persisted at most this often; finished states are saved at once. */
+const STREAMING_SAVE_DELAY_MS = 500;
 
 /** Earlier turns as model input; failed answers and the questions behind them are left out. */
 function toHistory(messages: Message[]): PiMessage[] {
@@ -30,15 +33,34 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** One conversation about one video. */
+function newSession() {
+  return { id: crypto.randomUUID(), createdAt: Date.now() };
+}
+
+/** One conversation about one video, saved to IndexedDB once it has messages. */
 export function useChat(settings: Settings | undefined) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [transcript, setTranscript] = useState<Transcript>();
+  const [session, setSession] = useState<{ id: string; createdAt: number }>(() => newSession());
   const abortRef = useRef<AbortController>(undefined);
-  const sessionRef = useRef(crypto.randomUUID());
+  // Lets async work started for one session notice that another one has replaced it.
+  const sessionIdRef = useRef(session.id);
 
   const generating = messages.some((m) => m.role === 'assistant' && m.status === 'streaming');
-  const video = messages.find((m) => m.role === 'assistant')?.video;
+  // The first message carries the video the whole session is about.
+  const video = messages[0]?.role === 'user' ? messages[0].video : undefined;
+
+  useEffect(() => {
+    if (!video) return;
+    const save = () =>
+      void saveSession({ ...session, video, videoKey: videoKeyOf(video), updatedAt: Date.now(), messages });
+    if (!generating) {
+      save();
+      return;
+    }
+    const timer = setTimeout(save, STREAMING_SAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [messages, session, video, generating]);
   const citations = useMemo(
     () => (transcript && video ? createCitations(transcript, video.durationSec) : undefined),
     [transcript, video],
@@ -95,7 +117,7 @@ export function useChat(settings: Settings | undefined) {
       stream = streamChat(model, context, {
         apiKey,
         signal: controller.signal,
-        sessionId: sessionRef.current,
+        sessionId: session.id,
         reasoning: model.reasoning ? 'low' : undefined,
       });
     } catch (error) {
@@ -137,11 +159,16 @@ export function useChat(settings: Settings | undefined) {
   };
 
   return {
+    sessionId: session.id,
     messages,
     generating,
     citations,
+    /** The video this session is about; undefined until the first message. */
+    video,
 
-    async send(target: VideoRef, text: string, preset?: PresetId) {
+    /** Asks about the session's video, or `activeVideo` when starting a session. */
+    async send(activeVideo: VideoRef, text: string, preset?: PresetId) {
+      const target = video ?? activeVideo;
       const playback = await getPlaybackTime(target);
       const userMessage: Message = {
         id: crypto.randomUUID(),
@@ -174,9 +201,23 @@ export function useChat(settings: Settings | undefined) {
 
     reset() {
       abortRef.current?.abort();
-      sessionRef.current = crypto.randomUUID();
+      const next = newSession();
+      sessionIdRef.current = next.id;
+      setSession(next);
       setMessages([]);
       setTranscript(undefined);
+    },
+
+    load(stored: Session) {
+      abortRef.current?.abort();
+      sessionIdRef.current = stored.id;
+      setSession({ id: stored.id, createdAt: stored.createdAt });
+      setMessages(stored.messages);
+      setTranscript(undefined);
+      // Needed to validate citations; usually already cached.
+      getTranscript(stored.video)
+        .then((loaded) => loaded && sessionIdRef.current === stored.id && setTranscript(loaded))
+        .catch(() => {});
     },
   };
 }

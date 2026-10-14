@@ -58,6 +58,20 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Conversations</h2>
+          <Field label="When opening a video">
+            <select
+              className={inputClass}
+              value={settings.sessionPolicy}
+              onChange={(e) => update({ sessionPolicy: e.target.value as Settings['sessionPolicy'] })}
+            >
+              <option value="new">Start a new conversation</option>
+              <option value="resume">Continue the last conversation</option>
+            </select>
+          </Field>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Appearance</h2>
           <div className="inline-flex rounded-full bg-surface p-1">
             {THEMES.map(([value, label]) => (

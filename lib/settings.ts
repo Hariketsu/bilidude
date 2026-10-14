@@ -14,12 +14,15 @@ export interface Settings {
   /** `auto` follows the browser UI language; otherwise a BCP 47 tag. */
   outputLanguage: string;
   theme: ThemePreference;
+  /** What opening a video shows: a fresh conversation, or the last one about it. */
+  sessionPolicy: 'new' | 'resume';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   llm: { provider: 'openai', models: {}, apiKeys: {}, customBaseUrl: '' },
   outputLanguage: 'auto',
   theme: 'system',
+  sessionPolicy: 'new',
 };
 
 const STORAGE_KEY = 'settings';

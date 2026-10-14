@@ -4,11 +4,12 @@ import { parseVideoUrl } from '@/lib/bili/url';
 import { getTranscript } from '@/lib/transcript';
 import type { VideoRef } from '@/lib/types';
 
+/** `key` is `${bvid}:${p}`; `tabId` is the active tab showing it. */
 export type ActiveVideo =
   | { status: 'none' }
-  | { status: 'loading'; key: string }
-  | { status: 'ready'; key: string; video: VideoRef }
-  | { status: 'error'; key: string; error: string };
+  | { status: 'loading'; key: string; tabId: number }
+  | { status: 'ready'; key: string; tabId: number; video: VideoRef }
+  | { status: 'error'; key: string; tabId: number; error: string };
 
 /** Tracks the bilibili video shown in this window's active tab. */
 export function useActiveVideo(): ActiveVideo {
@@ -18,17 +19,19 @@ export function useActiveVideo(): ActiveVideo {
     let windowId: number | undefined;
     let currentKey: string | undefined;
 
-    const resolve = async (url: string | undefined) => {
+    const resolve = async (tabId: number | undefined, url: string | undefined) => {
       const location = parseVideoUrl(url);
-      const key = location && `${location.bvid}:${location.p}`;
-      if (key === currentKey) return;
-      currentKey = key ?? undefined;
-      if (!location || !key) {
+      // The same video in another tab is a different conversation.
+      const key = location && tabId !== undefined ? `${location.bvid}:${location.p}` : undefined;
+      const identity = key && `${tabId}/${key}`;
+      if (identity === currentKey) return;
+      currentKey = identity;
+      if (!location || !key || tabId === undefined) {
         setState({ status: 'none' });
         return;
       }
 
-      setState({ status: 'loading', key });
+      setState({ status: 'loading', key, tabId });
       try {
         const info = await fetchVideoInfo(location.bvid);
         const page = info.pages.find((item) => item.page === location.p) ?? info.pages[0];
@@ -45,27 +48,27 @@ export function useActiveVideo(): ActiveVideo {
           coverUrl: info.coverUrl,
           durationSec: page.durationSec || info.durationSec,
         };
-        if (currentKey !== key) return;
-        setState({ status: 'ready', key, video });
+        if (currentKey !== identity) return;
+        setState({ status: 'ready', key, tabId, video });
         // Subtitles are free to fetch, so warm them up before the first question.
         getTranscript(video).catch(() => {});
       } catch (error) {
-        if (currentKey !== key) return;
-        setState({ status: 'error', key, error: error instanceof Error ? error.message : String(error) });
+        if (currentKey !== identity) return;
+        setState({ status: 'error', key, tabId, error: error instanceof Error ? error.message : String(error) });
       }
     };
 
     const refresh = async () => {
       const [tab] = await browser.tabs.query({ active: true, windowId });
-      void resolve(tab?.url);
+      void resolve(tab?.id, tab?.url);
     };
 
     const onActivated = (info: { windowId: number }) => {
       if (info.windowId === windowId) void refresh();
     };
     // B站 is a SPA: switching videos only changes the URL.
-    const onUpdated = (_tabId: number, change: { url?: string }, tab: { active: boolean; windowId?: number }) => {
-      if (change.url && tab.active && tab.windowId === windowId) void resolve(change.url);
+    const onUpdated = (tabId: number, change: { url?: string }, tab: { active: boolean; windowId?: number }) => {
+      if (change.url && tab.active && tab.windowId === windowId) void resolve(tabId, change.url);
     };
 
     browser.windows.getCurrent().then((win) => {
