@@ -1,9 +1,26 @@
 import { useState } from 'react';
 import { AtSign, ChevronRight } from 'lucide-react';
+import type { AsrProgress } from '@/lib/asr/transcribe';
 import type { AnswerPhase, VideoRef } from '@/lib/types';
 import { AttachmentPill } from './AttachmentCard';
 
-export function ThinkingSteps({ phase, video }: { phase: AnswerPhase; video: VideoRef }) {
+function describe(progress: AsrProgress | undefined): string {
+  if (!progress || progress.stage === 'downloading') {
+    const percent = progress ? Math.round(progress.fraction * 100) : 0;
+    return percent > 0 ? `Downloading audio · ${percent}%` : 'Downloading audio';
+  }
+  return `Transcribing audio · ${progress.done}/${progress.total}`;
+}
+
+export function ThinkingSteps({
+  phase,
+  video,
+  asrProgress,
+}: {
+  phase: AnswerPhase;
+  video: VideoRef;
+  asrProgress?: AsrProgress;
+}) {
   return (
     <div className="space-y-4 text-[15px]">
       <div className="shimmer-text font-medium">{phase === 'transcribing' ? 'Transcribing…' : 'Thinking…'}</div>
@@ -16,6 +33,14 @@ export function ThinkingSteps({ phase, video }: { phase: AnswerPhase; video: Vid
           <AttachmentPill video={video} />
         </div>
       </div>
+      {phase === 'transcribing' && (
+        <div className="space-y-1 pl-7 text-sm text-fg-muted">
+          <div>No subtitles, so the audio is being transcribed.</div>
+          <div data-testid="asr-progress" className="tabular-nums">
+            {describe(asrProgress)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

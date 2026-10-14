@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { saveSettings, type Settings } from '@/lib/settings';
 import type { ThemePreference } from '@/lib/theme';
+import { AsrForm } from './AsrForm';
 import { Field, inputClass } from './Field';
 import { IconButton } from './IconButton';
 import { ModelForm } from './ModelForm';
@@ -55,6 +56,11 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
               ))}
             </select>
           </Field>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Audio transcription</h2>
+          <AsrForm value={settings.asr} onSave={(asr) => update({ asr })} />
         </section>
 
         <section className="space-y-4">

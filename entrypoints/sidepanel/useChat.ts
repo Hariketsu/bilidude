@@ -1,5 +1,7 @@
 import type { Context, Message as PiMessage } from '@earendil-works/pi-ai';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { resolveAsr } from '@/lib/asr/providers';
+import { transcribeVideo } from '@/lib/asr/transcribe';
 import { createCitations } from '@/lib/citations';
 import { saveSession, videoKeyOf, type Session } from '@/lib/db';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
@@ -92,11 +94,25 @@ export function useChat(settings: Settings | undefined) {
     }
     if (controller.signal.aborted) return;
     if (!loaded) {
-      update(id, {
-        status: 'error',
-        error: 'This video has no subtitles. Turn on audio transcription in Settings to ask about it.',
-      });
-      return;
+      const asr = resolveAsr(settings.asr);
+      if (!asr) {
+        update(id, {
+          status: 'error',
+          error: 'This video has no subtitles. Turn on audio transcription in Settings to ask about it.',
+        });
+        return;
+      }
+      update(id, { phase: 'transcribing' });
+      try {
+        // Stopping the answer doesn't cancel the transcription; it keeps going for the next question.
+        loaded = await transcribeVideo(target, asr, (asrProgress) => {
+          if (!controller.signal.aborted) update(id, { asrProgress });
+        });
+      } catch (error) {
+        if (!controller.signal.aborted) update(id, { status: 'error', error: `Couldn't transcribe the audio: ${errorMessage(error)}` });
+        return;
+      }
+      if (controller.signal.aborted) return;
     }
     setTranscript(loaded);
 

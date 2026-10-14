@@ -6,11 +6,14 @@ import { ModelForm } from '@/components/ModelForm';
 import { PresetChip } from '@/components/PresetChip';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { TopBar } from '@/components/TopBar';
+import { resolveAsr } from '@/lib/asr/providers';
+import { transcribeVideo } from '@/lib/asr/transcribe';
 import { getSession, latestSessionFor } from '@/lib/db';
 import { resolveModel } from '@/lib/llm/providers';
 import { PRESETS } from '@/lib/presets';
 import { saveSettings, useSettings } from '@/lib/settings';
 import { seekVideo } from '@/lib/tab';
+import { getTranscript } from '@/lib/transcript';
 import { applyTheme } from '@/lib/theme';
 import type { PresetId } from '@/lib/types';
 import { useActiveVideo } from './useActiveVideo';
@@ -80,6 +83,15 @@ export default function App() {
       cancelled = true;
     };
   }, [identity, !!settings]);
+
+  // "As soon as the panel shows the video": transcribe ahead of the first question.
+  useEffect(() => {
+    const asr = settings && settings.asr.trigger === 'open' ? resolveAsr(settings.asr) : undefined;
+    if (!activeVideo || !asr) return;
+    getTranscript(activeVideo)
+      .then((transcript) => transcript ?? transcribeVideo(activeVideo, asr))
+      .catch(() => {}); // Errors surface when a question is asked.
+  }, [activeVideo, settings?.asr]);
 
   const send = (text: string) => {
     if (!video) return;

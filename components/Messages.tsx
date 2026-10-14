@@ -44,7 +44,7 @@ export function AssistantMessage({
   return (
     <div data-testid="answer" data-status={message.status}>
       {preparing ? (
-        <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} />
+        <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} asrProgress={message.asrProgress} />
       ) : (
         <>
           {message.thoughtMs !== undefined && (

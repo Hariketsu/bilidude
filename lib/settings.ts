@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
 import type { ThemePreference } from './theme';
 
 export interface Settings {
@@ -16,6 +17,8 @@ export interface Settings {
   theme: ThemePreference;
   /** What opening a video shows: a fresh conversation, or the last one about it. */
   sessionPolicy: 'new' | 'resume';
+  /** Speech recognition for videos without subtitles. */
+  asr: AsrSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,13 +26,19 @@ export const DEFAULT_SETTINGS: Settings = {
   outputLanguage: 'auto',
   theme: 'system',
   sessionPolicy: 'new',
+  asr: DEFAULT_ASR_SETTINGS,
 };
 
 const STORAGE_KEY = 'settings';
 
 export async function loadSettings(): Promise<Settings> {
   const stored = (await browser.storage.local.get(STORAGE_KEY))[STORAGE_KEY] as Partial<Settings> | undefined;
-  return { ...DEFAULT_SETTINGS, ...stored, llm: { ...DEFAULT_SETTINGS.llm, ...stored?.llm } };
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    llm: { ...DEFAULT_SETTINGS.llm, ...stored?.llm },
+    asr: { ...DEFAULT_SETTINGS.asr, ...stored?.asr },
+  };
 }
 
 export async function saveSettings(settings: Settings) {
