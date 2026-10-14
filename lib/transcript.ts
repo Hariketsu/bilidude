@@ -17,6 +17,11 @@ const DURATION_TOLERANCE_SECONDS = 30;
 
 const cache = new Map<string, Promise<Transcript | null>>();
 
+/** Makes a transcript produced elsewhere (ASR) the cached one for this video. */
+export function rememberTranscript(video: VideoRef, transcript: Transcript) {
+  cache.set(`${video.bvid}:${video.cid}`, Promise.resolve(transcript));
+}
+
 /** Loads (once per part, cached in IndexedDB) the transcript of a video; `null` when it has no usable subtitles. */
 export function getTranscript(video: VideoRef): Promise<Transcript | null> {
   const key = `${video.bvid}:${video.cid}`;

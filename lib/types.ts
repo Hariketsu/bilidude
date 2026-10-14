@@ -1,4 +1,5 @@
 import type { AssistantMessage as PiAssistantMessage } from '@earendil-works/pi-ai';
+import type { AsrProgress } from './asr/transcribe';
 
 export interface VideoRef {
   bvid: string;
@@ -27,11 +28,14 @@ export interface Chapter {
 }
 
 export interface Transcript {
-  source: 'cc' | 'ai';
+  /** Uploaded subtitles, Bilibili's AI subtitles, or our own speech recognition. */
+  source: 'cc' | 'ai' | 'asr';
   lang: string;
   lines: TranscriptLine[];
   /** Official chapters, or the author's timeline from the description. */
   chapters: Chapter[];
+  /** Line times were estimated (the ASR provider returned text without timestamps). */
+  approximateTimes?: boolean;
 }
 
 export type PresetId = 'recap' | 'toc' | 'quotes';
@@ -56,6 +60,8 @@ export type AssistantMessage = {
   video: VideoRef;
   status: 'streaming' | 'done' | 'aborted' | 'error';
   phase?: AnswerPhase;
+  /** While transcribing a video without subtitles. */
+  asrProgress?: AsrProgress;
   text: string;
   thinking?: string;
   thoughtMs?: number;

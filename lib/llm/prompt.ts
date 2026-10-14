@@ -4,6 +4,7 @@ import type { PresetId, Transcript, VideoRef } from '../types';
 const SOURCE_LABEL: Record<Transcript['source'], string> = {
   cc: 'uploaded subtitles',
   ai: 'Bilibili auto-generated subtitles',
+  asr: 'speech recognition of the audio',
 };
 
 /**
@@ -45,7 +46,7 @@ Uploader: ${video.upName}
 Duration: ${formatTimestamp(video.durationSec)}${video.desc ? `\nDescription:\n${video.desc}` : ''}${chapters ? `\nChapters:\n${chapters}` : ''}
 </video>
 
-<transcript source="${SOURCE_LABEL[transcript.source]}" language="${transcript.lang}">
+<transcript source="${SOURCE_LABEL[transcript.source]}"${transcript.lang ? ` language="${transcript.lang}"` : ''}${transcript.approximateTimes ? ' times="approximate, may be off by several seconds"' : ''}>
 ${lines}
 </transcript>`;
 }

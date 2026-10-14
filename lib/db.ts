@@ -1,4 +1,5 @@
 import { openDB, type DBSchema } from 'idb';
+import type { ChunkTranscript } from './asr/providers';
 import type { Message, Transcript, VideoRef } from './types';
 
 export interface Session {
@@ -15,14 +16,19 @@ interface Schema extends DBSchema {
   sessions: { key: string; value: Session; indexes: { updatedAt: number; videoKey: string } };
   /** Keyed by `${bvid}:${cid}`. Videos without subtitles are not stored. */
   transcripts: { key: string; value: Transcript & { key: string; fetchedAt: number } };
+  /** Finished ASR chunks, so an interrupted transcription resumes where it stopped. */
+  asrChunks: { key: string; value: ChunkTranscript };
 }
 
-const db = openDB<Schema>('bilidude', 1, {
-  upgrade(database) {
-    const sessions = database.createObjectStore('sessions', { keyPath: 'id' });
-    sessions.createIndex('updatedAt', 'updatedAt');
-    sessions.createIndex('videoKey', 'videoKey');
-    database.createObjectStore('transcripts', { keyPath: 'key' });
+const db = openDB<Schema>('bilidude', 2, {
+  upgrade(database, oldVersion) {
+    if (oldVersion < 1) {
+      const sessions = database.createObjectStore('sessions', { keyPath: 'id' });
+      sessions.createIndex('updatedAt', 'updatedAt');
+      sessions.createIndex('videoKey', 'videoKey');
+      database.createObjectStore('transcripts', { keyPath: 'key' });
+    }
+    if (oldVersion < 2) database.createObjectStore('asrChunks');
   },
 });
 
@@ -65,4 +71,12 @@ export async function loadStoredTranscript(key: string): Promise<Transcript | un
 
 export async function storeTranscript(key: string, transcript: Transcript) {
   await (await db).put('transcripts', { ...transcript, key, fetchedAt: Date.now() });
+}
+
+export async function loadAsrChunk(key: string): Promise<ChunkTranscript | undefined> {
+  return (await db).get('asrChunks', key);
+}
+
+export async function storeAsrChunk(key: string, chunk: ChunkTranscript) {
+  await (await db).put('asrChunks', chunk, key);
 }
