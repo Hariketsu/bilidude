@@ -109,3 +109,19 @@ export async function fetchSubtitleBody(url: string): Promise<BiliSubtitleLine[]
   const data = await biliFetch<{ body?: BiliSubtitleLine[] }>(url);
   return (data.body ?? []).map(({ from, to, content }) => ({ from, to, content }));
 }
+
+/**
+ * Download URLs of the smallest AAC-LC audio track, most reliable CDN first.
+ * HE-AAC tracks (mp4a.40.5) are skipped: their frames can't be re-wrapped as plain ADTS.
+ * The CDN requires a bilibili.com Referer (set by the background's network rule).
+ */
+export async function fetchAudioUrls(bvid: string, cid: number): Promise<string[]> {
+  const data = await biliFetch<any>(`https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16`);
+  const tracks: any[] = (data.dash?.audio ?? []).filter((track: any) => track.codecs === 'mp4a.40.2');
+  if (tracks.length === 0) throw new BiliApiError('This video has no audio track that can be transcribed');
+  const track = tracks.reduce((a, b) => (b.bandwidth < a.bandwidth ? b : a));
+  const urls: string[] = [track.baseUrl ?? track.base_url, ...(track.backupUrl ?? track.backup_url ?? [])].filter(Boolean);
+  // Main CDN (*.bilivideo.com) before peer CDN nodes (mcdn, odd ports), which fail more often.
+  const rank = (url: string) => (new URL(url).hostname.endsWith('.bilivideo.com') ? 0 : 1);
+  return urls.map(absoluteUrl).sort((a, b) => rank(a) - rank(b));
+}
