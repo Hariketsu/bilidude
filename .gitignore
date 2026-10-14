@@ -27,3 +27,8 @@ web-ext.config.ts
 
 # Reference projects (not ours)
 ref/
+
+# Local secrets and test output
+.env.local
+test-results/
+playwright-report/

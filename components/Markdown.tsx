@@ -39,7 +39,11 @@ export function Markdown({
     ),
     code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 text-[0.9em]">{children}</code>,
     // A blockquote whose text isn't in the transcript: shown as plain prose, not as the speaker's words.
-    'bd-paraphrase': ({ children }: { children?: React.ReactNode }) => <div className="my-3 [&>p]:my-1 [&>p]:whitespace-pre-line">{children}</div>,
+    'bd-paraphrase': ({ children }: { children?: React.ReactNode }) => (
+      <div data-paraphrase className="my-3 [&>p]:my-1 [&>p]:whitespace-pre-line">
+        {children}
+      </div>
+    ),
     'bd-timestamp': ({ seconds }: { seconds?: string }) => <TimestampChip seconds={Number(seconds)} onSeek={onSeek} />,
   } as Components; // `bd-timestamp` comes from remarkTimestamps
 

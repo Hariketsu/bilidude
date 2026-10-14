@@ -41,19 +41,31 @@ export function AssistantMessage({
   const preparing = streaming && message.phase !== 'writing';
   const text = streaming ? trimPartialTimestamp(message.text) : message.text;
 
-  if (preparing) return <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} />;
-
   return (
-    <div>
-      {message.thoughtMs !== undefined && <ThoughtSummary thoughtMs={message.thoughtMs} thinking={message.thinking} />}
-      {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
-      {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">Stopped.</p>}
-      {message.error && <p className="mt-2 text-[15px] text-fg-muted">{message.error}</p>}
-      {!streaming && (
-        <div className="mt-3 flex gap-1">
-          {text && <IconButton icon={Copy} label="Copy" onClick={() => navigator.clipboard.writeText(message.text)} />}
-          <IconButton icon={RotateCw} label="Regenerate" onClick={onRegenerate} />
-        </div>
+    <div data-testid="answer" data-status={message.status}>
+      {preparing ? (
+        <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} />
+      ) : (
+        <>
+          {message.thoughtMs !== undefined && (
+            <ThoughtSummary thoughtMs={message.thoughtMs} thinking={message.thinking} />
+          )}
+          {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
+          {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">Stopped.</p>}
+          {message.error && (
+            <p data-testid="answer-error" className="mt-2 text-[15px] text-fg-muted">
+              {message.error}
+            </p>
+          )}
+          {!streaming && (
+            <div className="mt-3 flex gap-1">
+              {text && (
+                <IconButton icon={Copy} label="Copy" onClick={() => navigator.clipboard.writeText(message.text)} />
+              )}
+              <IconButton icon={RotateCw} label="Regenerate" onClick={onRegenerate} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
