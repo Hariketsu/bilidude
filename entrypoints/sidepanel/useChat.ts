@@ -4,6 +4,7 @@ import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
 import { createCitations } from '@/lib/citations';
 import { saveSession, videoKeyOf, type Session } from '@/lib/db';
+import { t } from '@/lib/i18n';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
 import { reasoningOption, resolveModel, streamChat } from '@/lib/llm/providers';
 import { resolveOutputLanguage, type Settings } from '@/lib/settings';
@@ -81,7 +82,7 @@ export function useChat(settings: Settings | undefined) {
 
     const resolved = settings && resolveModel(settings.llm);
     if (!resolved) {
-      update(id, { status: 'error', error: 'Set up a model in Settings first.' });
+      update(id, { status: 'error', error: t('errors.noModel') });
       return;
     }
 
@@ -89,17 +90,14 @@ export function useChat(settings: Settings | undefined) {
     try {
       loaded = await getTranscript(target);
     } catch (error) {
-      update(id, { status: 'error', error: `Couldn't load subtitles: ${errorMessage(error)}` });
+      update(id, { status: 'error', error: t('errors.subtitles', { error: errorMessage(error) }) });
       return;
     }
     if (controller.signal.aborted) return;
     if (!loaded) {
       const asr = resolveAsr(settings.asr);
       if (!asr) {
-        update(id, {
-          status: 'error',
-          error: 'This video has no subtitles. Turn on audio transcription in Settings to ask about it.',
-        });
+        update(id, { status: 'error', error: t('errors.noSubtitles') });
         return;
       }
       update(id, { phase: 'transcribing' });
@@ -109,7 +107,7 @@ export function useChat(settings: Settings | undefined) {
           if (!controller.signal.aborted) update(id, { asrProgress });
         });
       } catch (error) {
-        if (!controller.signal.aborted) update(id, { status: 'error', error: `Couldn't transcribe the audio: ${errorMessage(error)}` });
+        if (!controller.signal.aborted) update(id, { status: 'error', error: t('errors.transcription', { error: errorMessage(error) }) });
         return;
       }
       if (controller.signal.aborted) return;
@@ -117,12 +115,9 @@ export function useChat(settings: Settings | undefined) {
     setTranscript(loaded);
 
     const { model, apiKey } = resolved;
-    const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings.outputLanguage));
+    const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings));
     if (estimateTokens(systemPrompt) + RESERVED_TOKENS > model.contextWindow) {
-      update(id, {
-        status: 'error',
-        error: `This video is too long for ${model.name}. Choose a model with a larger context window.`,
-      });
+      update(id, { status: 'error', error: t('errors.tooLong', { model: model.name }) });
       return;
     }
 
@@ -168,7 +163,7 @@ export function useChat(settings: Settings | undefined) {
       thoughtMs: thoughtMs ?? Date.now() - startedAt,
       phase: 'writing',
       status: result.stopReason === 'aborted' ? 'aborted' : result.stopReason === 'error' ? 'error' : 'done',
-      error: result.stopReason === 'error' ? result.errorMessage || 'The model returned an error.' : undefined,
+      error: result.stopReason === 'error' ? result.errorMessage || t('errors.modelError') : undefined,
       // Keep partial answers in the history so follow-ups can refer to them.
       llm: hasContent ? result : undefined,
     });

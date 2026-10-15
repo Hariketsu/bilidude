@@ -31,10 +31,10 @@ It works in your language. A Chinese video can be summarized in English, with qu
 - **Three one-click starts** — *Recap*, *Table of Contents* and *Top Quotes*, or just type a question.
 - **Timestamps you can trust** — every cited time is checked against the transcript: snapped to the line it belongs to, and dropped if it doesn't exist. Quotes that can't be found in the transcript are shown as plain text, never as the speaker's words.
 - **Knows where you are** — follow-up questions include the current playback position, so "what did he just say?" works.
-- **Any language** — answers follow your browser language or a language you pick.
+- **Any language** — the interface comes in English, Simplified Chinese and Traditional Chinese; answers follow the interface language or a language you pick.
 - **Videos without subtitles** — transcribe the audio with Bilibili's free speech recognition, or with OpenAI, Groq, Alibaba Cloud Model Studio, SiliconFlow or any OpenAI-compatible service.
 - **History** — conversations are saved per video, in your browser. Reopen them any time.
-- **Your choice of model** — OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, or any OpenAI-compatible endpoint.
+- **Your choice of model** — OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, or any OpenAI-compatible endpoint. Thinking is off by default for fast answers; turn it up next to the input box when a question needs it.
 - **Light and dark** — follows your system, or set it yourself.
 
 <!-- TODO: screenshots
@@ -73,22 +73,23 @@ See [Development](#%EF%B8%8F-development).
 
 ## ⚙️ Settings
 
-Open them with the gear icon in the side panel.
+Open them with the gear icon in the side panel. Changes are saved as you make them.
 
 | Setting | What it does |
 | --- | --- |
-| **Model** | The provider, API key and model that write the answers. |
-| **Answers → Language** | The language answers are written in. Defaults to your browser's language. |
-| **Audio transcription** | Off by default. When on, videos without subtitles are transcribed — when you ask about them, or as soon as the panel shows them. |
-| **Conversations** | Opening a video starts a new conversation, or continues the last one about it. |
-| **Appearance** | System, light or dark. |
+| **Model** | The provider, API key and model that write the answers, and how much the model thinks first (off by default; also switchable next to the input box). |
+| **Audio transcription** | Off by default. When on, videos without subtitles are transcribed — when you ask about them, or as soon as the video opens. |
+| **General → Language** | The interface language: English, 简体中文 or 繁體中文. Defaults to your browser's language. |
+| **General → Answer language** | The language answers are written in. Defaults to the interface language. |
+| **General → Opening a video** | Start a new conversation, or continue the last one about it. |
+| **General → Theme** | System, light or dark. |
 
 ### Model providers
 
 | Provider | Notes |
 | --- | --- |
 | OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek | Choose from the built-in model list. |
-| Custom (OpenAI-compatible) | Any endpoint that speaks the OpenAI Chat Completions API, such as a local Ollama or LM Studio server. BiliDude asks for permission to reach it when you save. |
+| Custom (OpenAI-compatible) | Any endpoint that speaks the OpenAI Chat Completions API, such as a local Ollama or LM Studio server. BiliDude asks for permission to reach it (**Allow access** in settings). |
 
 The whole transcript is sent with each question, so pick a model with a large context window for long videos.
 
@@ -122,7 +123,7 @@ BiliDude has no server of its own and collects no analytics.
 | `declarativeNetRequestWithHostAccess` | Adds the headers Bilibili's servers expect to BiliDude's own requests: a `Referer` for the audio CDN and an `Origin` for Bcut. Other requests are untouched. |
 | Bilibili sites (`www`/`api`/`member.bilibili.com`, `*.hdslb.com`, `*.bilivideo.com`/`.cn`, `*.biliapi.net`) | Video details, subtitles, audio, and Bcut transcription. |
 | Built-in model and transcription providers | Calling the APIs you configure. |
-| Other sites (optional) | Requested only when you save a custom endpoint, for that endpoint alone. |
+| Other sites (optional) | Requested only when you set up a custom endpoint, for that endpoint alone. |
 
 ## ❓ FAQ
 

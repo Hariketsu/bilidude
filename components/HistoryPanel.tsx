@@ -1,11 +1,11 @@
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { deleteSession, listSessions, type Session } from '@/lib/db';
-import { getPreset } from '@/lib/presets';
+import { t } from '@/lib/i18n';
 import { BiliIcon } from './BiliIcon';
 import { IconButton } from './IconButton';
 
-const relativeTime = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 86_400_000],
   ['month', 30 * 86_400_000],
@@ -14,19 +14,20 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['minute', 60_000],
 ];
 
-function formatAgo(timestamp: number): string {
+function formatAgo(timestamp: number, language: string): string {
   const elapsed = Date.now() - timestamp;
+  const relativeTime = new Intl.RelativeTimeFormat(language, { numeric: 'auto' });
   for (const [unit, ms] of UNITS) {
     if (elapsed >= ms) return relativeTime.format(-Math.floor(elapsed / ms), unit);
   }
-  return 'just now';
+  return t('history.justNow');
 }
 
 /** What the conversation started with: the preset name and/or the question. */
 function firstQuestion(session: Session): string {
   const first = session.messages[0];
   if (first?.role !== 'user') return '';
-  return [first.preset && getPreset(first.preset).label, first.text].filter(Boolean).join(' · ');
+  return [first.preset && t(`presets.${first.preset}`), first.text].filter(Boolean).join(' · ');
 }
 
 export function HistoryPanel({
@@ -38,6 +39,7 @@ export function HistoryPanel({
   onOpen: (session: Session) => void;
   onClose: () => void;
 }) {
+  const { t, i18n } = useTranslation();
   const [sessions, setSessions] = useState<Session[]>();
 
   useEffect(() => {
@@ -52,12 +54,12 @@ export function HistoryPanel({
   return (
     <div className="absolute inset-0 z-10 flex flex-col bg-bg">
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
-        <IconButton icon={ArrowLeft} label="Back" onClick={onClose} />
-        <h1 className="text-[15px] font-semibold">History</h1>
+        <IconButton icon={ArrowLeft} label={t('common.back')} onClick={onClose} />
+        <h1 className="text-[15px] font-semibold">{t('history.title')}</h1>
       </header>
       <div className="flex-1 overflow-y-auto px-3 pb-6">
         {sessions?.length === 0 && (
-          <p className="pt-16 text-center text-sm text-fg-muted">No conversations yet</p>
+          <p className="pt-16 text-center text-sm text-fg-muted">{t('history.empty')}</p>
         )}
         <ul className="space-y-1">
           {sessions?.map((session) => (
@@ -85,11 +87,11 @@ export function HistoryPanel({
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <div className="line-clamp-2 text-sm leading-snug text-fg">{session.video.title}</div>
                   <div className="truncate text-xs text-fg-muted">{firstQuestion(session)}</div>
-                  <div className="text-xs text-fg-muted">{formatAgo(session.updatedAt)}</div>
+                  <div className="text-xs text-fg-muted">{formatAgo(session.updatedAt, i18n.language)}</div>
                 </div>
               </button>
               <div className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                <IconButton icon={Trash2} label="Delete" onClick={() => void remove(session.id)} />
+                <IconButton icon={Trash2} label={t('history.delete')} onClick={() => void remove(session.id)} />
               </div>
             </li>
           ))}

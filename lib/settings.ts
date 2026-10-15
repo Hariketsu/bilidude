@@ -1,6 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { useEffect, useState } from 'react';
 import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
+import { resolveUiLanguage, type UiLanguageSetting } from './i18n';
 import type { ThemePreference } from './theme';
 
 export interface Settings {
@@ -15,7 +16,9 @@ export interface Settings {
     /** Preferred reasoning effort; each request clamps it to what the model supports. */
     thinking: ModelThinkingLevel;
   };
-  /** `auto` follows the browser UI language; otherwise a BCP 47 tag. */
+  /** Interface language; `auto` follows the browser. */
+  uiLanguage: UiLanguageSetting;
+  /** `auto` follows the interface language; otherwise a BCP 47 tag. */
   outputLanguage: string;
   theme: ThemePreference;
   /** What opening a video shows: a fresh conversation, or the last one about it. */
@@ -27,6 +30,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   // Thinking off: recaps come back in seconds instead of after a long reasoning pass.
   llm: { provider: 'openai', models: {}, apiKeys: {}, customBaseUrl: '', thinking: 'off' },
+  uiLanguage: 'auto',
   outputLanguage: 'auto',
   theme: 'system',
   sessionPolicy: 'new',
@@ -64,8 +68,8 @@ export function useSettings(): Settings | undefined {
 }
 
 /** English name of the language answers should be written in, e.g. `Chinese (China)`. */
-export function resolveOutputLanguage(setting: string): string {
-  const tag = setting === 'auto' ? browser.i18n.getUILanguage() : setting;
+export function resolveOutputLanguage(settings: Pick<Settings, 'outputLanguage' | 'uiLanguage'>): string {
+  const tag = settings.outputLanguage === 'auto' ? resolveUiLanguage(settings.uiLanguage) : settings.outputLanguage;
   try {
     return new Intl.DisplayNames(['en'], { type: 'language' }).of(tag) ?? tag;
   } catch {

@@ -5,6 +5,7 @@ import type { Transcript, VideoRef } from '../types';
 import { splitAac } from './aac';
 import { downloadAudio } from './audio';
 import { transcribeChunk, type AsrConfig, type ChunkTranscript } from './providers';
+import { t } from '../i18n';
 
 export type AsrProgress = { stage: 'downloading'; fraction: number } | { stage: 'transcribing'; done: number; total: number };
 
@@ -86,7 +87,7 @@ async function run(video: VideoRef, config: AsrConfig, report: (p: AsrProgress) 
       content: s.text,
     })),
   );
-  if (body.length === 0) throw new Error('No speech was recognized in this video');
+  if (body.length === 0) throw new Error(t('errors.noSpeech'));
 
   const { chapters: official } = await fetchPlayerInfo(video.aid, video.cid, video.bvid).catch(() => ({ chapters: [] }));
   const chapters = official.length > 0 ? official : parseAuthorChapters(video.desc);

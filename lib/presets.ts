@@ -1,10 +1,11 @@
 import { BookText, List, TextQuote, type LucideIcon } from 'lucide-react';
 import type { PresetId } from './types';
 
-export const PRESETS: { id: PresetId; label: string; icon: LucideIcon }[] = [
-  { id: 'recap', label: 'Recap', icon: List },
-  { id: 'toc', label: 'Table of Contents', icon: BookText },
-  { id: 'quotes', label: 'Top Quotes', icon: TextQuote },
+/** Labels live in the locale files under `presets.<id>`. */
+export const PRESETS: { id: PresetId; icon: LucideIcon }[] = [
+  { id: 'recap', icon: List },
+  { id: 'toc', icon: BookText },
+  { id: 'quotes', icon: TextQuote },
 ];
 
 export function getPreset(id: PresetId) {

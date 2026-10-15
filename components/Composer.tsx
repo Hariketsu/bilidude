@@ -1,6 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { ArrowUp, Square, X } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getPreset } from '@/lib/presets';
 import type { PresetId, VideoRef } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
@@ -27,6 +28,7 @@ export function Composer({
   /** Shown only for models that can reason. */
   thinking?: { levels: ModelThinkingLevel[]; value: ModelThinkingLevel; onChange: (level: ModelThinkingLevel) => void };
 }) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const canSend = !generating && !!video && (text.trim() !== '' || !!preset);
@@ -56,11 +58,11 @@ export function Composer({
                 textareaRef.current?.focus();
               }}
               className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-surface-raised px-4 py-2 text-sm font-medium text-fg"
-              title="Remove preset"
+              title={t('composer.removePreset')}
             >
               <PresetIcon className="size-4 group-hover:hidden" />
               <X className="hidden size-4 group-hover:block" />
-              {getPreset(preset).label}
+              {t(`presets.${preset}`)}
             </button>
           )}
           <textarea
@@ -76,7 +78,7 @@ export function Composer({
               }
               if (event.key === 'Backspace' && text === '' && preset) onClearPreset();
             }}
-            placeholder={preset ? '' : showAttachment ? 'Ask a question about this video…' : 'Ask another question…'}
+            placeholder={preset ? '' : showAttachment ? t('composer.askAboutVideo') : t('composer.askAnother')}
             className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent py-1.5 text-[15px] text-fg outline-none placeholder:text-fg-muted disabled:cursor-not-allowed"
           />
         </div>
@@ -84,7 +86,7 @@ export function Composer({
         {generating ? (
           <button
             type="button"
-            aria-label="Stop"
+            aria-label={t('composer.stop')}
             onClick={onStop}
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-white"
           >
@@ -93,7 +95,7 @@ export function Composer({
         ) : (
           <button
             type="button"
-            aria-label="Send"
+            aria-label={t('composer.send')}
             onClick={send}
             disabled={!canSend}
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-opacity disabled:opacity-40"

@@ -1,4 +1,5 @@
 import { Copy, RotateCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
 import { useTypewriter } from '@/lib/typewriter';
@@ -38,6 +39,7 @@ export function AssistantMessage({
   onSeek?: (seconds: number) => void;
   onRegenerate?: () => void;
 }) {
+  const { t } = useTranslation();
   const shown = useTypewriter(message.text, message.status === 'streaming');
   // Still streaming on screen until the reveal catches up with the received text.
   const streaming = message.status === 'streaming' || shown !== message.text;
@@ -59,7 +61,7 @@ export function AssistantMessage({
             <ThoughtSummary thoughtMs={message.thoughtMs} thinking={message.thinking} />
           )}
           {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
-          {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">Stopped.</p>}
+          {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
           {message.error && (
             <p data-testid="answer-error" className="mt-2 text-[15px] text-fg-muted">
               {message.error}
@@ -68,9 +70,9 @@ export function AssistantMessage({
           {!streaming && (
             <div className="mt-3 flex gap-1">
               {text && (
-                <IconButton icon={Copy} label="Copy" onClick={() => navigator.clipboard.writeText(message.text)} />
+                <IconButton icon={Copy} label={t('answer.copy')} onClick={() => navigator.clipboard.writeText(message.text)} />
               )}
-              <IconButton icon={RotateCw} label="Regenerate" onClick={onRegenerate} />
+              <IconButton icon={RotateCw} label={t('answer.regenerate')} onClick={onRegenerate} />
             </div>
           )}
         </>

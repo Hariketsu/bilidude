@@ -1,13 +1,11 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CUSTOM_PROVIDER, effectiveThinking, listModels, PROVIDERS, thinkingLevels } from '@/lib/llm/providers';
 import type { Settings } from '@/lib/settings';
 import { HostAccess, originOf } from './HostAccess';
 import { Group, Select, TextInput } from './SettingsUi';
-import { THINKING_LABELS } from './ThinkingPicker';
 
 type LlmSettings = Settings['llm'];
-
-const KEY_NOTE = 'Your key is stored only in this browser and sent only to the provider you choose.';
 
 /** Provider, endpoint, key, model and thinking level; every change is reported at once. */
 export function ModelSettings({
@@ -22,6 +20,7 @@ export function ModelSettings({
   /** Offer the custom endpoint's permission inline (the setup form asks on its own button instead). */
   hostAccess?: boolean;
 }) {
+  const { t } = useTranslation();
   const provider = value.provider;
   const isCustom = provider === CUSTOM_PROVIDER;
   const models = listModels(provider);
@@ -31,16 +30,16 @@ export function ModelSettings({
   const setForProvider = (field: 'apiKeys' | 'models', text: string) => set({ [field]: { ...value[field], [provider]: text } });
 
   return (
-    <Group title={title} footer={KEY_NOTE}>
+    <Group title={title} footer={t('settings.model.keyNote')}>
       <Select
-        label="Provider"
+        label={t('settings.model.provider')}
         value={provider}
-        options={PROVIDERS.map((p) => [p.id, p.name] as const)}
+        options={PROVIDERS.map((p) => [p.id, p.id === CUSTOM_PROVIDER ? t('settings.model.customProvider') : p.name] as const)}
         onChange={(id) => set({ provider: id })}
       />
       {isCustom && (
         <TextInput
-          label="Base URL"
+          label={t('settings.model.baseUrl')}
           placeholder="https://api.example.com/v1"
           value={value.customBaseUrl}
           onChange={(customBaseUrl) => set({ customBaseUrl })}
@@ -48,33 +47,33 @@ export function ModelSettings({
       )}
       {isCustom && hostAccess && <HostAccess baseUrl={value.customBaseUrl} />}
       <TextInput
-        label="API key"
+        label={t('settings.model.apiKey')}
         secret
-        placeholder="Required"
+        placeholder={t('settings.model.required')}
         value={value.apiKeys[provider] ?? ''}
         onChange={(key) => setForProvider('apiKeys', key)}
       />
       {isCustom ? (
         <TextInput
-          label="Model"
-          placeholder="Model ID"
+          label={t('settings.model.model')}
+          placeholder={t('settings.model.modelId')}
           value={value.models[provider] ?? ''}
           onChange={(id) => setForProvider('models', id)}
         />
       ) : (
         <Select
-          label="Model"
+          label={t('settings.model.model')}
           value={value.models[provider] ?? ''}
-          placeholder="Choose a model"
+          placeholder={t('settings.model.chooseModel')}
           options={models.map((m) => [m.id, m.name] as const)}
           onChange={(id) => setForProvider('models', id)}
         />
       )}
       {model && levels.length > 0 && (
         <Select
-          label="Thinking"
+          label={t('thinking.label')}
           value={effectiveThinking(model, value.thinking)}
-          options={levels.map((level) => [level, THINKING_LABELS[level]] as const)}
+          options={levels.map((level) => [level, t(`thinking.levels.${level}`)] as const)}
           onChange={(thinking) => set({ thinking })}
         />
       )}
@@ -84,6 +83,7 @@ export function ModelSettings({
 
 /** First-run setup: the model card plus a button that saves it (and asks for a custom endpoint's host). */
 export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm: LlmSettings) => Promise<void> }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState<string>();
   const isCustom = draft.provider === CUSTOM_PROVIDER;
@@ -94,12 +94,12 @@ export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm
     if (isCustom) {
       const origin = originOf(draft.customBaseUrl);
       if (!origin) {
-        setError('Enter a valid base URL, e.g. https://api.example.com/v1');
+        setError(t('settings.host.invalidUrl'));
         return;
       }
       // Must be the first await: Chrome only grants permissions during the click.
       if (!(await browser.permissions.request({ origins: [`${origin}/*`] }))) {
-        setError(`bilidude needs access to ${origin} to call this endpoint.`);
+        setError(t('settings.host.needsAccess', { origin }));
         return;
       }
     }
@@ -123,7 +123,7 @@ export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm
           disabled={!complete}
           className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-40"
         >
-          Connect
+          {t('setup.connect')}
         </button>
         {error && <span className="text-sm text-red-500">{error}</span>}
       </div>

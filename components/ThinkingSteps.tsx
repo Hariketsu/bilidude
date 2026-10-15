@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { AtSign, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { AsrProgress } from '@/lib/asr/transcribe';
 import type { AnswerPhase, VideoRef } from '@/lib/types';
+import { t } from '@/lib/i18n';
 import { AttachmentPill } from './AttachmentCard';
 
 function describe(progress: AsrProgress | undefined): string {
   if (!progress || progress.stage === 'downloading') {
     const percent = progress ? Math.round(progress.fraction * 100) : 0;
-    return percent > 0 ? `Downloading audio · ${percent}%` : 'Downloading audio';
+    return percent > 0 ? t('answer.downloadingPercent', { percent }) : t('answer.downloading');
   }
-  return `Transcribing audio · ${progress.done}/${progress.total}`;
+  return t('answer.transcribingProgress', { done: progress.done, total: progress.total });
 }
 
 /** Only the end of a long reasoning stream is visible; rendering all of it every frame is wasted work. */
@@ -27,13 +29,14 @@ export function ThinkingSteps({
   /** The model's reasoning so far, shown live while it thinks. */
   thinking?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4 text-[15px]">
-      <div className="shimmer-text font-medium">{phase === 'transcribing' ? 'Transcribing…' : 'Thinking…'}</div>
+      <div className="shimmer-text font-medium">{phase === 'transcribing' ? t('answer.transcribing') : t('answer.thinking')}</div>
       <div className="space-y-3">
         <div className="flex items-center gap-2 font-medium text-fg-muted">
           <AtSign className="size-[18px]" strokeWidth={1.75} />
-          Reading 1 attachment
+          {t('answer.readingAttachment')}
         </div>
         <div className="pl-7">
           <AttachmentPill video={video} />
@@ -41,7 +44,7 @@ export function ThinkingSteps({
       </div>
       {phase === 'transcribing' && (
         <div className="space-y-1 pl-7 text-sm text-fg-muted">
-          <div>No subtitles, so the audio is being transcribed.</div>
+          <div>{t('answer.noSubtitles')}</div>
           <div data-testid="asr-progress" className="tabular-nums">
             {describe(asrProgress)}
           </div>
@@ -60,6 +63,7 @@ export function ThinkingSteps({
 }
 
 export function ThoughtSummary({ thoughtMs, thinking }: { thoughtMs: number; thinking?: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const seconds = Math.max(1, Math.round(thoughtMs / 1000));
   return (
@@ -70,7 +74,7 @@ export function ThoughtSummary({ thoughtMs, thinking }: { thoughtMs: number; thi
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1 text-[15px] font-medium text-fg-muted enabled:hover:text-fg"
       >
-        Thought for {seconds} {seconds === 1 ? 'second' : 'seconds'}
+        {t('answer.thoughtFor', { count: seconds })}
         {thinking && <ChevronRight className={`size-4 transition-transform ${open ? 'rotate-90' : ''}`} />}
       </button>
       {open && thinking && (

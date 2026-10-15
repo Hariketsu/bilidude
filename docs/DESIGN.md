@@ -220,6 +220,15 @@ Transcript { key: `${bvid}:${cid}`, source: 'cc'|'ai'|'asr', lang,
 
 首次使用（无可用模型）时，在对话区内联显示同一张模型卡片和「Connect」按钮（这里先存草稿，点按钮才保存并申请自定义端点权限，避免填到一半就切到对话界面），不跳转设置页。
 
+### 11.1 界面语言（i18n）
+
+- 界面支持 English / 简体中文 / 繁體中文，用 `i18next` + `react-i18next`，可在插件内即时切换（`chrome.i18n` 只能跟随浏览器语言，做不到）。
+- 设置项 `uiLanguage`：默认 `auto` 跟随浏览器（`zh-TW` / `zh-HK` / `zh-MO` / `zh-Hant` → 繁体，其余 `zh*` → 简体，其他 → 英文）。启动时在首次渲染前应用，并同步 `<html lang>`。
+- 文案在 `locales/`：`en.ts` 是源，`zh-CN.ts` / `zh-TW.ts` 以其类型约束，键缺漏会编译失败。繁体用台湾用语（影片、設定、金鑰）。
+- 发给模型的 prompt 和预设指令保持英文，与界面语言无关；回答语言另由 `outputLanguage` 决定，`auto` 跟随界面语言。
+- 错误信息在产生时翻译并存进会话，历史里显示的是当时的语言；HTTP 状态码等技术细节保持原文。
+- manifest 的描述走 `public/_locales`（扩展名 bilidude 不翻译）。
+
 ## 12. 权限
 
 ```

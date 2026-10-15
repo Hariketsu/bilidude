@@ -1,6 +1,8 @@
 // B站 web API. Requests carry the user's login cookies (credentials: 'include'),
 // which works from extension pages thanks to the host permissions.
 
+import { t } from '../i18n';
+
 export interface BiliVideoInfo {
   aid: number;
   bvid: string;
@@ -118,7 +120,7 @@ export async function fetchSubtitleBody(url: string): Promise<BiliSubtitleLine[]
 export async function fetchAudioUrls(bvid: string, cid: number): Promise<string[]> {
   const data = await biliFetch<any>(`https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&fnval=16`);
   const tracks: any[] = (data.dash?.audio ?? []).filter((track: any) => track.codecs === 'mp4a.40.2');
-  if (tracks.length === 0) throw new BiliApiError('This video has no audio track that can be transcribed');
+  if (tracks.length === 0) throw new BiliApiError(t('errors.noAudioTrack'));
   const track = tracks.reduce((a, b) => (b.bandwidth < a.bandwidth ? b : a));
   const urls: string[] = [track.baseUrl ?? track.base_url, ...(track.backupUrl ?? track.backup_url ?? [])].filter(Boolean);
   // Main CDN (*.bilivideo.com) before peer CDN nodes (mcdn, odd ports), which fail more often.

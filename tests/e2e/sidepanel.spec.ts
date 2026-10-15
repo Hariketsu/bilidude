@@ -117,3 +117,18 @@ test('switches theme from settings', async ({ context, extensionId }) => {
   await panel.getByRole('button', { name: 'Light' }).click();
   await expect(panel.locator('html')).not.toHaveClass(/dark/);
 });
+
+test('switches the interface language from settings', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  await panel.getByRole('button', { name: 'Settings' }).click();
+  await panel.getByLabel('Language', { exact: true }).selectOption('zh-TW');
+  await expect(panel.getByRole('heading', { name: '設定' })).toBeVisible();
+  await expect(panel.locator('html')).toHaveAttribute('lang', 'zh-TW');
+
+  await panel.getByRole('button', { name: '返回' }).click();
+  await expect(panel.getByRole('button', { name: '摘要' })).toBeVisible();
+  await expect(panel.getByRole('textbox')).toHaveAttribute('placeholder', '針對這部影片提問…');
+});

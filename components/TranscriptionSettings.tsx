@@ -1,16 +1,7 @@
-import { ASR_PROVIDERS, getAsrProvider, resolveAsr, type AsrSettings } from '@/lib/asr/providers';
+import { useTranslation } from 'react-i18next';
+import { ASR_PROVIDERS, getAsrProvider, resolveAsr, type AsrProviderId, type AsrSettings } from '@/lib/asr/providers';
 import { HostAccess } from './HostAccess';
 import { Group, Hint, Select, Switch, TextInput } from './SettingsUi';
-
-const REGIONS = [
-  ['cn-beijing', 'China (Beijing)'],
-  ['ap-southeast-1', 'Singapore'],
-] as const;
-
-const TRIGGERS = [
-  ['ask', 'When I ask'],
-  ['open', 'When the video opens'],
-] as const;
 
 /** Speech recognition for videos without subtitles; every change is reported at once. */
 export function TranscriptionSettings({
@@ -22,30 +13,37 @@ export function TranscriptionSettings({
   value: AsrSettings;
   onChange: (asr: AsrSettings) => void;
 }) {
+  const { t } = useTranslation();
   const provider = getAsrProvider(value.provider);
+  const providerName = (id: AsrProviderId, name: string) =>
+    id === 'bcut' || id === 'dashscope'
+      ? t(`settings.transcription.${id}`)
+      : id === 'custom'
+        ? t('settings.model.customProvider')
+        : name;
   const set = (patch: Partial<AsrSettings>) => onChange({ ...value, ...patch });
   const setForProvider = (field: 'apiKeys' | 'models', text: string) => set({ [field]: { ...value[field], [provider.id]: text } });
 
   return (
     <Group title={title}>
-      <Switch label="Transcribe videos without subtitles" checked={value.enabled} onChange={(enabled) => set({ enabled })} />
+      <Switch label={t('settings.transcription.enable')} checked={value.enabled} onChange={(enabled) => set({ enabled })} />
       {value.enabled && (
         <>
           <Select
-            label="Service"
+            label={t('settings.transcription.service')}
             value={provider.id}
-            options={ASR_PROVIDERS.map((p) => [p.id, p.name] as const)}
+            options={ASR_PROVIDERS.map((p) => [p.id, providerName(p.id, p.name)] as const)}
             onChange={(id) => set({ provider: id })}
           />
           {provider.free && (
-            <Hint>Uses the speech recognition behind Bilibili's Bcut editor. No key needed; the audio is uploaded to Bilibili.</Hint>
+            <Hint>{t('settings.transcription.bcutNote')}</Hint>
           )}
-          {!provider.timestamps && <Hint>This service returns text without timestamps, so cited times are estimates.</Hint>}
+          {!provider.timestamps && <Hint>{t('settings.transcription.noTimestamps')}</Hint>}
 
           {provider.id === 'custom' && (
             <>
               <TextInput
-                label="Base URL"
+                label={t('settings.model.baseUrl')}
                 placeholder="https://api.example.com/v1"
                 value={value.customBaseUrl}
                 onChange={(customBaseUrl) => set({ customBaseUrl })}
@@ -55,10 +53,15 @@ export function TranscriptionSettings({
           )}
           {provider.id === 'dashscope' && (
             <>
-              <Select label="Region" value={value.dashscopeRegion} options={REGIONS} onChange={(dashscopeRegion) => set({ dashscopeRegion })} />
+              <Select
+                label={t('settings.transcription.region')}
+                value={value.dashscopeRegion}
+                options={(['cn-beijing', 'ap-southeast-1'] as const).map((r) => [r, t(`settings.transcription.regions.${r}`)] as const)}
+                onChange={(dashscopeRegion) => set({ dashscopeRegion })}
+              />
               <TextInput
-                label="Workspace ID"
-                placeholder="Optional"
+                label={t('settings.transcription.workspace')}
+                placeholder={t('settings.transcription.optional')}
                 value={value.dashscopeWorkspace}
                 onChange={(dashscopeWorkspace) => set({ dashscopeWorkspace })}
               />
@@ -67,23 +70,28 @@ export function TranscriptionSettings({
           {!provider.free && (
             <>
               <TextInput
-                label="API key"
+                label={t('settings.model.apiKey')}
                 secret
-                placeholder="Required"
+                placeholder={t('settings.model.required')}
                 value={value.apiKeys[provider.id] ?? ''}
                 onChange={(key) => setForProvider('apiKeys', key)}
               />
               <TextInput
-                label="Model"
-                placeholder={provider.defaultModel || 'Model ID'}
+                label={t('settings.model.model')}
+                placeholder={provider.defaultModel || t('settings.model.modelId')}
                 value={value.models[provider.id] ?? ''}
                 onChange={(id) => setForProvider('models', id)}
               />
             </>
           )}
-          {!resolveAsr(value) && <Hint>Fill in the fields above to use this service.</Hint>}
+          {!resolveAsr(value) && <Hint>{t('settings.transcription.incomplete')}</Hint>}
 
-          <Select label="Start transcribing" value={value.trigger} options={TRIGGERS} onChange={(trigger) => set({ trigger })} />
+          <Select
+            label={t('settings.transcription.start')}
+            value={value.trigger}
+            options={(['ask', 'open'] as const).map((k) => [k, t(`settings.transcription.triggers.${k}`)] as const)}
+            onChange={(trigger) => set({ trigger })}
+          />
         </>
       )}
     </Group>

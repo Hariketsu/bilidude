@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@earendil-works/pi-ai": "^1.2.0",
+    "i18next": "^26.4.4",
     "idb": "^8.0.4",
     "lucide-react": "^1.56.0",
     "mdast-util-to-string": "^4.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.16",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "unist-util-visit": "^5.1.0"

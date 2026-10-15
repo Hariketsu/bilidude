@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Hint } from './SettingsUi';
 
 export function originOf(baseUrl: string): string | undefined {
@@ -15,6 +16,7 @@ export function originOf(baseUrl: string): string | undefined {
  * Chrome only grants host permissions during a click, so this offers a button.
  */
 export function HostAccess({ baseUrl }: { baseUrl: string }) {
+  const { t } = useTranslation();
   const origin = originOf(baseUrl);
   const [granted, setGranted] = useState<boolean>();
 
@@ -29,17 +31,17 @@ export function HostAccess({ baseUrl }: { baseUrl: string }) {
   }, [origin]);
 
   if (!baseUrl.trim() || granted) return null;
-  if (!origin) return <Hint warning>Enter a valid base URL, e.g. https://api.example.com/v1</Hint>;
+  if (!origin) return <Hint warning>{t('settings.host.invalidUrl')}</Hint>;
   if (granted === undefined) return null;
   return (
     <div className="flex items-center gap-3 px-4 py-2.5">
-      <p className="flex-1 text-xs leading-relaxed text-fg-muted">bilidude needs access to {origin} to call this endpoint.</p>
+      <p className="flex-1 text-xs leading-relaxed text-fg-muted">{t('settings.host.needsAccess', { origin })}</p>
       <button
         type="button"
         onClick={async () => setGranted(await browser.permissions.request({ origins: [`${origin}/*`] }))}
         className="shrink-0 rounded-full bg-accent px-3.5 py-1.5 text-xs font-medium text-white"
       >
-        Allow access
+        {t('settings.host.allow')}
       </button>
     </div>
   );

@@ -9,7 +9,8 @@ export default defineConfig({
   }),
   manifest: {
     name: 'bilidude',
-    description: 'Dia-style AI side panel for Bilibili videos',
+    description: '__MSG_extDescription__',
+    default_locale: 'en',
     // declarativeNetRequestWithHostAccess: sets the Referer the audio CDN requires (entrypoints/background.ts).
     permissions: ['sidePanel', 'storage', 'scripting', 'declarativeNetRequestWithHostAccess'],
     host_permissions: [

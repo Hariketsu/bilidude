@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchVideoInfo } from '@/lib/bili/api';
 import { parseVideoUrl } from '@/lib/bili/url';
+import { t } from '@/lib/i18n';
 import { getTranscript } from '@/lib/transcript';
 import type { VideoRef } from '@/lib/types';
 
@@ -35,7 +36,7 @@ export function useActiveVideo(): ActiveVideo {
       try {
         const info = await fetchVideoInfo(location.bvid);
         const page = info.pages.find((item) => item.page === location.p) ?? info.pages[0];
-        if (!page) throw new Error('Video has no playable parts');
+        if (!page) throw new Error(t('errors.noPlayableParts'));
         const video: VideoRef = {
           bvid: info.bvid,
           aid: info.aid,

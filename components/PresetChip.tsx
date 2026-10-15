@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { getPreset } from '@/lib/presets';
 import type { PresetId } from '@/lib/types';
 
@@ -10,7 +11,9 @@ export function PresetChip({
   size?: 'sm' | 'md';
   onClick?: () => void;
 }) {
-  const { label, icon: Icon } = getPreset(id);
+  const { t } = useTranslation();
+  const { icon: Icon } = getPreset(id);
+  const label = t(`presets.${id}`);
   const sizing = size === 'sm' ? 'gap-1.5 px-3 py-1.5 text-[13px]' : 'gap-2 px-4 py-2 text-sm font-medium';
   const className = `inline-flex shrink-0 items-center rounded-full ${sizing}`;
 

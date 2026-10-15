@@ -1,6 +1,7 @@
 import type { AacChunk } from './aac';
 import { concatFrames } from './aac';
 import { aacToWav } from './wav';
+import { t } from '../i18n';
 
 export type AsrProviderId = 'bcut' | 'openai' | 'groq' | 'siliconflow' | 'dashscope' | 'custom';
 export type DashscopeRegion = 'cn-beijing' | 'ap-southeast-1';
@@ -234,7 +235,7 @@ async function bcutCall<T>(path: string, init: RequestInit, signal?: AbortSignal
   const response = await fetch(BCUT_API + path, { ...init, credentials: 'omit', signal });
   if (response.status === 412) {
     // Not retried: retrying is what keeps the limit in place.
-    throw new Error("Bilibili's free speech recognition is rate-limiting this network. Try again later, or choose another service in Settings.");
+    throw new Error(t('errors.bcutRateLimited'));
   }
   if (!response.ok) throw Object.assign(new Error(`Bcut HTTP ${response.status}`), { retryable: response.status >= 500 });
   const body = await response.json();
