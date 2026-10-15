@@ -15,6 +15,7 @@
   --bd-fg-muted: #6e737b;
   --bd-accent: #0a6fae;
   --bd-bili: #fb7299;
+  --bd-scrollbar: rgb(0 0 0 / 0.15);
 }
 
 :root.dark {
@@ -29,6 +30,7 @@
   --bd-fg-muted: #9a9ea5;
   --bd-accent: #1aa3d9;
   --bd-bili: #fb7299;
+  --bd-scrollbar: rgb(255 255 255 / 0.15);
 }
 
 @theme inline {
@@ -47,6 +49,12 @@
 body {
   font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Thin thumb on a transparent track, so the scrollbar blends into the panel. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd-scrollbar) transparent;
 }
 
 /* "Thinking…" label: a highlight sweeping across muted text. */
