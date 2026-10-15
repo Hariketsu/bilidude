@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Composer } from '@/components/Composer';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { AssistantMessage, UserMessage } from '@/components/Messages';
-import { ModelForm } from '@/components/ModelForm';
+import { ModelSetup } from '@/components/ModelSettings';
 import { PresetChip } from '@/components/PresetChip';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { TopBar } from '@/components/TopBar';
@@ -112,7 +112,7 @@ export default function App() {
               <h1 className="text-lg font-semibold">Connect a model</h1>
               <p className="text-sm text-fg-muted">bilidude answers with your own API key.</p>
             </div>
-            <ModelForm value={settings.llm} onSave={(llm) => saveSettings({ ...settings, llm })} />
+            <ModelSetup value={settings.llm} onSave={(llm) => saveSettings({ ...settings, llm })} />
           </div>
         )}
         {isEmpty && !needsSetup && !video && (

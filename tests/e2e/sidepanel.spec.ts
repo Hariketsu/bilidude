@@ -24,7 +24,7 @@ test('setup form connects a model', async ({ context, extensionId }) => {
   await panel.getByLabel('Provider').selectOption('deepseek');
   await panel.getByLabel('API key').fill('sk-test');
   await panel.getByLabel('Model').selectOption('deepseek-flash');
-  await panel.getByRole('button', { name: 'Save' }).click();
+  await panel.getByRole('button', { name: 'Connect' }).click();
 
   await expect(panel.getByRole('button', { name: 'Recap', exact: true })).toBeVisible();
 });
