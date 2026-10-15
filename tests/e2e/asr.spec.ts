@@ -61,6 +61,17 @@ test('Bcut: uploads in parts, creates a task and polls for the result', async ({
   const prompt = systemPrompt(requests);
   expect(prompt).toContain('speech recognition of the audio');
   expect(prompt).toContain('[00:02] never gonna give you up');
+  // Resume points are dropped once the transcript is stored.
+  const chunks = await panel.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        indexedDB.open('bilidude').onsuccess = (e) => {
+          const request = (e.target as IDBOpenDBRequest).result.transaction('asrChunks').objectStore('asrChunks').count();
+          request.onsuccess = () => resolve(request.result);
+        };
+      }),
+  );
+  expect(chunks).toBe(0);
 });
 
 test('OpenAI-compatible: uploads WAV and uses segment timestamps', async ({ context, extensionId }) => {

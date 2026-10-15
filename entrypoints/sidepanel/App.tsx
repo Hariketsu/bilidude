@@ -10,6 +10,7 @@ import { TopBar } from '@/components/TopBar';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
 import { getSession, latestSessionFor } from '@/lib/db';
+import { pruneCacheDaily } from '@/lib/cache';
 import { downloadSession } from '@/lib/export';
 import { applyUiLanguage } from '@/lib/i18n';
 import { effectiveThinking, resolveModel, thinkingLevels } from '@/lib/llm/providers';
@@ -52,6 +53,10 @@ export default function App() {
   useEffect(() => {
     if (settings) applyUiLanguage(settings.uiLanguage);
   }, [settings?.uiLanguage]);
+
+  useEffect(() => {
+    if (settings) void pruneCacheDaily(settings.cache).catch(console.error);
+  }, [!!settings]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' });

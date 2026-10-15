@@ -120,6 +120,22 @@ const zhCN: Messages = {
         open: '打开视频时',
       },
     },
+    storage: {
+      title: '存储',
+      policy: '清理字幕缓存',
+      modes: {
+        age: '长期未使用时',
+        size: '超过大小上限时',
+        never: '从不',
+      },
+      unusedFor: '未使用超过',
+      days_one: '{{count}} 天',
+      days_other: '{{count}} 天',
+      sizeLimit: '大小上限',
+      usage: '缓存占用',
+      clear: '清除',
+      note: '历史记录里视频的字幕始终保留，重新打开对话时无需再次转写。',
+    },
     general: {
       title: '通用',
       interfaceLanguage: '语言',

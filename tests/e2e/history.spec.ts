@@ -101,3 +101,48 @@ test('exports a conversation as Markdown with linked timestamps', async ({ conte
   await panel.getByRole('button', { name: 'Copy' }).click();
   expect(await panel.evaluate(() => navigator.clipboard.readText())).toContain('[00:12](https://www.bilibili.com/video/BV1GJ411x7h7/?t=12)');
 });
+
+test('expires unused cached subtitles but keeps those of the history', async ({ context, extensionId }) => {
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await ask(panel, { preset: 'Recap' }); // caches this video's transcript, and it is in the history
+
+  const daysAgo = (days: number) => Date.now() - days * 86_400_000;
+  const transcriptKeys = () =>
+    panel.evaluate(
+      () =>
+        new Promise<string[]>((resolve) => {
+          indexedDB.open('bilidude').onsuccess = (e) => {
+            const request = (e.target as IDBOpenDBRequest).result.transaction('transcripts').objectStore('transcripts').getAllKeys();
+            request.onsuccess = () => resolve((request.result as string[]).sort());
+          };
+        }),
+    );
+  const [historyKey] = await transcriptKeys();
+  await panel.evaluate(
+    ({ historyKey, old }) =>
+      new Promise<void>((resolve) => {
+        indexedDB.open('bilidude').onsuccess = (e) => {
+          const tx = (e.target as IDBOpenDBRequest).result.transaction('transcripts', 'readwrite');
+          const store = tx.objectStore('transcripts');
+          const line = { from: 0, to: 5, text: 'x' };
+          store.put({ key: 'BVold:1', source: 'ai', lang: 'zh', lines: [line], chapters: [], fetchedAt: old, usedAt: old });
+          store.put({ key: 'BVnew:2', source: 'ai', lang: 'zh', lines: [line], chapters: [], fetchedAt: Date.now() });
+          // Unused for long too, but the saved conversation still needs it.
+          store.get(historyKey).onsuccess = (g) => store.put({ ...(g.target as IDBRequest).result, usedAt: old });
+          tx.oncomplete = () => resolve();
+        };
+      }),
+    { historyKey: historyKey!, old: daysAgo(40) },
+  );
+
+  await panel.getByRole('button', { name: 'Settings' }).click();
+  await expect(panel.getByTestId('cache-size')).not.toHaveText('…');
+  const policy = panel.getByLabel('Delete cached subtitles');
+  await policy.selectOption('never');
+  await policy.selectOption('age'); // 30 days by default; applies at once
+  await expect.poll(transcriptKeys).toEqual(['BVnew:2', historyKey].sort());
+
+  await panel.getByRole('button', { name: 'Clear' }).click();
+  await expect.poll(transcriptKeys).toEqual([historyKey]);
+});

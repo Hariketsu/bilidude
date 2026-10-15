@@ -120,6 +120,22 @@ const en = {
         open: 'When the video opens',
       },
     },
+    storage: {
+      title: 'Storage',
+      policy: 'Delete cached subtitles',
+      modes: {
+        age: 'When unused for a while',
+        size: 'When over a size limit',
+        never: 'Never',
+      },
+      unusedFor: 'Unused for',
+      days_one: '{{count}} day',
+      days_other: '{{count}} days',
+      sizeLimit: 'Size limit',
+      usage: 'Cache size',
+      clear: 'Clear',
+      note: 'Subtitles of videos in your history are always kept, so reopened conversations never need a new transcription.',
+    },
     general: {
       title: 'General',
       interfaceLanguage: 'Language',

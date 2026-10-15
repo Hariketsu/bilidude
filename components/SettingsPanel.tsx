@@ -7,6 +7,7 @@ import type { ThemePreference } from '@/lib/theme';
 import { IconButton } from './IconButton';
 import { ModelSettings } from './ModelSettings';
 import { Group, Hint, Row, Select, Switch } from './SettingsUi';
+import { StorageSettings } from './StorageSettings';
 import { TranscriptionSettings } from './TranscriptionSettings';
 
 /** Answer languages, each named in itself. */
@@ -92,6 +93,8 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
           />
           <Hint>{t('settings.general.exportLinksNote')}</Hint>
         </Group>
+
+        <StorageSettings value={current.cache} onChange={(cache) => update({ cache })} />
       </div>
     </div>
   );

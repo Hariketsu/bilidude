@@ -12,12 +12,22 @@ export interface Session {
   messages: Message[];
 }
 
+type StoredTranscript = Transcript & {
+  key: string;
+  fetchedAt: number;
+  /** Last time a question loaded it; drives cache expiry. */
+  usedAt?: number;
+};
+
 interface Schema extends DBSchema {
   sessions: { key: string; value: Session; indexes: { updatedAt: number; videoKey: string } };
   /** Keyed by `${bvid}:${cid}`. Videos without subtitles are not stored. */
-  transcripts: { key: string; value: Transcript & { key: string; fetchedAt: number } };
-  /** Finished ASR chunks, so an interrupted transcription resumes where it stopped. */
-  asrChunks: { key: string; value: ChunkTranscript };
+  transcripts: { key: string; value: StoredTranscript };
+  /**
+   * Finished ASR chunks, keyed `${bvid}:${cid}:…`, so an interrupted transcription resumes
+   * where it stopped. Deleted once the whole transcript is stored.
+   */
+  asrChunks: { key: string; value: ChunkTranscript & { savedAt?: number } };
 }
 
 const db = openDB<Schema>('bilidude', 2, {
@@ -66,7 +76,9 @@ export async function deleteSession(id: string) {
 }
 
 export async function loadStoredTranscript(key: string): Promise<Transcript | undefined> {
-  return (await db).get('transcripts', key);
+  const stored = await (await db).get('transcripts', key);
+  if (stored) void (await db).put('transcripts', { ...stored, usedAt: Date.now() });
+  return stored;
 }
 
 export async function storeTranscript(key: string, transcript: Transcript) {
@@ -78,5 +90,56 @@ export async function loadAsrChunk(key: string): Promise<ChunkTranscript | undef
 }
 
 export async function storeAsrChunk(key: string, chunk: ChunkTranscript) {
-  await (await db).put('asrChunks', chunk, key);
+  await (await db).put('asrChunks', { ...chunk, savedAt: Date.now() }, key);
+}
+
+/** Drops the resume points of a video once its transcript is complete. */
+export async function deleteAsrChunks(transcriptKey: string) {
+  await (await db).delete('asrChunks', IDBKeyRange.bound(`${transcriptKey}:`, `${transcriptKey}:\uffff`));
+}
+
+export interface CacheEntry {
+  store: 'transcripts' | 'asrChunks';
+  key: string;
+  bytes: number;
+  usedAt: number;
+  /** A saved conversation is about this video; its transcript validates the citations there. */
+  inHistory: boolean;
+}
+
+const encoder = new TextEncoder();
+
+/** Every cached transcript and ASR chunk with its approximate size (UTF-8 JSON). */
+export async function listCacheEntries(): Promise<CacheEntry[]> {
+  const database = await db;
+  const history = new Set((await database.getAll('sessions')).map((s) => `${s.video.bvid}:${s.video.cid}`));
+  const entries: CacheEntry[] = [];
+  for (const record of await database.getAll('transcripts')) {
+    const bytes = encoder.encode(JSON.stringify(record)).length;
+    entries.push({
+      store: 'transcripts',
+      key: record.key,
+      bytes,
+      usedAt: record.usedAt ?? record.fetchedAt,
+      inHistory: history.has(record.key),
+    });
+  }
+  let cursor = await database.transaction('asrChunks').store.openCursor();
+  while (cursor) {
+    const key = cursor.key;
+    entries.push({
+      store: 'asrChunks',
+      key,
+      bytes: encoder.encode(JSON.stringify(cursor.value)).length,
+      usedAt: cursor.value.savedAt ?? 0,
+      inHistory: false,
+    });
+    cursor = await cursor.continue();
+  }
+  return entries;
+}
+
+export async function deleteCacheEntries(entries: CacheEntry[]) {
+  const tx = (await db).transaction(['transcripts', 'asrChunks'], 'readwrite');
+  await Promise.all([...entries.map((e) => tx.objectStore(e.store).delete(e.key)), tx.done]);
 }

@@ -120,6 +120,22 @@ const zhTW: Messages = {
         open: '開啟影片時',
       },
     },
+    storage: {
+      title: '儲存空間',
+      policy: '清理字幕快取',
+      modes: {
+        age: '長期未使用時',
+        size: '超過大小上限時',
+        never: '永不',
+      },
+      unusedFor: '未使用超過',
+      days_one: '{{count}} 天',
+      days_other: '{{count}} 天',
+      sizeLimit: '大小上限',
+      usage: '快取占用',
+      clear: '清除',
+      note: '歷史紀錄中影片的字幕一律保留，重新開啟對話時不必再次轉錄。',
+    },
     general: {
       title: '一般',
       interfaceLanguage: '語言',

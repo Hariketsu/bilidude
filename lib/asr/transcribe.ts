@@ -1,5 +1,5 @@
 import { fetchPlayerInfo } from '../bili/api';
-import { loadAsrChunk, storeAsrChunk, storeTranscript } from '../db';
+import { deleteAsrChunks, loadAsrChunk, storeAsrChunk, storeTranscript } from '../db';
 import { mergeLines, parseAuthorChapters, rememberTranscript } from '../transcript';
 import type { Transcript, VideoRef } from '../types';
 import { splitAac } from './aac';
@@ -99,6 +99,7 @@ async function run(video: VideoRef, config: AsrConfig, report: (p: AsrProgress) 
     approximateTimes: results.some((r) => r.approximate) || undefined,
   };
   await storeTranscript(`${video.bvid}:${video.cid}`, transcript);
+  await deleteAsrChunks(`${video.bvid}:${video.cid}`);
   rememberTranscript(video, transcript);
   return transcript;
 }

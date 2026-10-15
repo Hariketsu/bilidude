@@ -1,6 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { useEffect, useState } from 'react';
 import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
+import { DEFAULT_CACHE_POLICY, type CachePolicy } from './cache';
 import { resolveUiLanguage, type UiLanguageSetting } from './i18n';
 import type { ThemePreference } from './theme';
 
@@ -27,6 +28,8 @@ export interface Settings {
   asr: AsrSettings;
   /** Copied answers and exported conversations link their timestamps to the video. */
   exportLinks: boolean;
+  /** When cached transcripts are deleted. */
+  cache: CachePolicy;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -38,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sessionPolicy: 'new',
   asr: DEFAULT_ASR_SETTINGS,
   exportLinks: true,
+  cache: DEFAULT_CACHE_POLICY,
 };
 
 const STORAGE_KEY = 'settings';
@@ -49,6 +53,7 @@ export async function loadSettings(): Promise<Settings> {
     ...stored,
     llm: { ...DEFAULT_SETTINGS.llm, ...stored?.llm },
     asr: { ...DEFAULT_SETTINGS.asr, ...stored?.asr },
+    cache: { ...DEFAULT_SETTINGS.cache, ...stored?.cache },
   };
 }
 
