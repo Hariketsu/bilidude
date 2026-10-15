@@ -2,6 +2,7 @@ import { Copy, RotateCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
+import { formatAnswer } from '@/lib/export';
 import { useTypewriter } from '@/lib/typewriter';
 import type { AssistantMessage as AssistantMsg, UserMessage as UserMsg } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
@@ -31,11 +32,14 @@ export function UserMessage({ message }: { message: UserMsg }) {
 export function AssistantMessage({
   message,
   citations,
+  exportLinks,
   onSeek,
   onRegenerate,
 }: {
   message: AssistantMsg;
   citations?: Citations;
+  /** Copy timestamps as links to the video. */
+  exportLinks: boolean;
   onSeek?: (seconds: number) => void;
   onRegenerate?: () => void;
 }) {
@@ -70,7 +74,9 @@ export function AssistantMessage({
           {!streaming && (
             <div className="mt-3 flex gap-1">
               {text && (
-                <IconButton icon={Copy} label={t('answer.copy')} onClick={() => navigator.clipboard.writeText(message.text)} />
+                <IconButton icon={Copy} label={t('answer.copy')} onClick={() =>
+                    navigator.clipboard.writeText(formatAnswer(message.text, message.video, { links: exportLinks, citations }))
+                  } />
               )}
               <IconButton icon={RotateCw} label={t('answer.regenerate')} onClick={onRegenerate} />
             </div>

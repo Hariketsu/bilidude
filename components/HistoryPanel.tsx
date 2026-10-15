@@ -1,4 +1,4 @@
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { deleteSession, listSessions, type Session } from '@/lib/db';
@@ -33,10 +33,12 @@ function firstQuestion(session: Session): string {
 export function HistoryPanel({
   currentSessionId,
   onOpen,
+  onExport,
   onClose,
 }: {
   currentSessionId: string;
   onOpen: (session: Session) => void;
+  onExport: (session: Session) => void;
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -68,7 +70,7 @@ export function HistoryPanel({
                 type="button"
                 data-testid="history-item"
                 onClick={() => onOpen(session)}
-                className={`flex w-full items-center gap-3 rounded-xl p-2 pr-10 text-left transition-colors hover:bg-fill-hover ${
+                className={`flex w-full items-center gap-3 rounded-xl p-2 pr-[4.5rem] text-left transition-colors hover:bg-fill-hover ${
                   session.id === currentSessionId ? 'bg-surface' : ''
                 }`}
               >
@@ -90,7 +92,8 @@ export function HistoryPanel({
                   <div className="text-xs text-fg-muted">{formatAgo(session.updatedAt, i18n.language)}</div>
                 </div>
               </button>
-              <div className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <div className="absolute top-1/2 right-1 flex -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                <IconButton icon={Download} label={t('history.export')} onClick={() => onExport(session)} />
                 <IconButton icon={Trash2} label={t('history.delete')} onClick={() => void remove(session.id)} />
               </div>
             </li>

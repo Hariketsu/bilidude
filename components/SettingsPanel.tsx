@@ -6,7 +6,7 @@ import { saveSettings, type Settings } from '@/lib/settings';
 import type { ThemePreference } from '@/lib/theme';
 import { IconButton } from './IconButton';
 import { ModelSettings } from './ModelSettings';
-import { Group, Row, Select } from './SettingsUi';
+import { Group, Hint, Row, Select, Switch } from './SettingsUi';
 import { TranscriptionSettings } from './TranscriptionSettings';
 
 /** Answer languages, each named in itself. */
@@ -85,6 +85,12 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
               ))}
             </span>
           </Row>
+          <Switch
+            label={t('settings.general.exportLinks')}
+            checked={current.exportLinks}
+            onChange={(exportLinks) => update({ exportLinks })}
+          />
+          <Hint>{t('settings.general.exportLinksNote')}</Hint>
         </Group>
       </div>
     </div>

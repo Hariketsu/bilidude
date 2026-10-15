@@ -4,6 +4,7 @@ const en = {
     newChat: 'New chat',
     history: 'History',
     settings: 'Settings',
+    export: 'Export conversation',
   },
   common: {
     back: 'Back',
@@ -73,6 +74,10 @@ const en = {
     empty: 'No conversations yet',
     delete: 'Delete',
     justNow: 'just now',
+    export: 'Export',
+  },
+  export: {
+    uploader: 'Uploader: {{name}}',
   },
   settings: {
     title: 'Settings',
@@ -121,6 +126,8 @@ const en = {
       answerLanguage: 'Answer language',
       followBrowser: 'Same as browser',
       followInterface: 'Same as interface',
+      exportLinks: 'Link timestamps to the video',
+      exportLinksNote: 'Timestamps in copied answers and exported conversations open the video at that moment.',
       openingVideo: 'Opening a video',
       policies: {
         new: 'New conversation',

@@ -5,6 +5,7 @@ const zhCN: Messages = {
     newChat: '新对话',
     history: '历史记录',
     settings: '设置',
+    export: '导出对话',
   },
   common: {
     back: '返回',
@@ -73,6 +74,10 @@ const zhCN: Messages = {
     empty: '还没有对话',
     delete: '删除',
     justNow: '刚刚',
+    export: '导出',
+  },
+  export: {
+    uploader: 'UP 主：{{name}}',
   },
   settings: {
     title: '设置',
@@ -121,6 +126,8 @@ const zhCN: Messages = {
       answerLanguage: '回答语言',
       followBrowser: '跟随浏览器',
       followInterface: '跟随界面语言',
+      exportLinks: '时间戳链接到视频',
+      exportLinksNote: '复制的回答和导出的对话里，时间戳可点击跳到视频对应位置。',
       openingVideo: '打开视频时',
       policies: {
         new: '新建对话',

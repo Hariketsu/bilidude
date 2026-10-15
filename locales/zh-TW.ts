@@ -5,6 +5,7 @@ const zhTW: Messages = {
     newChat: '新對話',
     history: '歷史紀錄',
     settings: '設定',
+    export: '匯出對話',
   },
   common: {
     back: '返回',
@@ -73,6 +74,10 @@ const zhTW: Messages = {
     empty: '還沒有對話',
     delete: '刪除',
     justNow: '剛剛',
+    export: '匯出',
+  },
+  export: {
+    uploader: 'UP 主：{{name}}',
   },
   settings: {
     title: '設定',
@@ -121,6 +126,8 @@ const zhTW: Messages = {
       answerLanguage: '回答語言',
       followBrowser: '跟隨瀏覽器',
       followInterface: '跟隨介面語言',
+      exportLinks: '時間戳記連結到影片',
+      exportLinksNote: '複製的回答與匯出的對話中，時間戳記可點擊跳到影片對應位置。',
       openingVideo: '開啟影片時',
       policies: {
         new: '新增對話',

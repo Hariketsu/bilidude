@@ -25,6 +25,8 @@ export interface Settings {
   sessionPolicy: 'new' | 'resume';
   /** Speech recognition for videos without subtitles. */
   asr: AsrSettings;
+  /** Copied answers and exported conversations link their timestamps to the video. */
+  exportLinks: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   sessionPolicy: 'new',
   asr: DEFAULT_ASR_SETTINGS,
+  exportLinks: true,
 };
 
 const STORAGE_KEY = 'settings';

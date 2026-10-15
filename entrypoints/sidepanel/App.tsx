@@ -10,6 +10,7 @@ import { TopBar } from '@/components/TopBar';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
 import { getSession, latestSessionFor } from '@/lib/db';
+import { downloadSession } from '@/lib/export';
 import { applyUiLanguage } from '@/lib/i18n';
 import { effectiveThinking, resolveModel, thinkingLevels } from '@/lib/llm/providers';
 import { PRESETS } from '@/lib/presets';
@@ -39,6 +40,7 @@ export default function App() {
   const tabSessions = useRef(new Map<number, string>());
 
   const isEmpty = chat.messages.length === 0;
+  const canExport = !chat.generating && chat.messages.some((m) => m.role === 'assistant' && m.text);
   const resolved = settings && resolveModel(settings.llm);
   const needsSetup = !!settings && !resolved;
   const levels = resolved ? thinkingLevels(resolved.model) : [];
@@ -110,7 +112,16 @@ export default function App() {
 
   return (
     <main className="relative flex h-screen flex-col bg-bg text-fg">
-      <TopBar onNewChat={newChat} onHistory={() => setOverlay('history')} onSettings={() => setOverlay('settings')} />
+      <TopBar
+        onNewChat={newChat}
+        onHistory={() => setOverlay('history')}
+        onSettings={() => setOverlay('settings')}
+        onExport={
+          canExport && settings
+            ? () => void getSession(chat.sessionId).then((session) => session && downloadSession(session, settings.exportLinks))
+            : undefined
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-5">
         {isEmpty && needsSetup && settings && (
@@ -137,6 +148,7 @@ export default function App() {
                 key={message.id}
                 message={message}
                 citations={chat.citations}
+                exportLinks={settings?.exportLinks ?? true}
                 onSeek={(seconds) => void seekVideo(message.video, seconds)}
                 onRegenerate={() => void chat.regenerate(message.id)}
               />
@@ -180,6 +192,7 @@ export default function App() {
       {overlay === 'history' && (
         <HistoryPanel
           currentSessionId={chat.sessionId}
+          onExport={(session) => void downloadSession(session, settings?.exportLinks ?? true)}
           onOpen={(session) => {
             chat.load(session);
             setPreset(undefined);
