@@ -152,7 +152,7 @@ lib/
 - **BYOK**：Key 按 provider 存 `chrome.storage.local`（不进 sync），每次请求显式传 `apiKey`，不用 pi-ai 的 `CredentialStore`。
 - **Provider 列表**：MVP 内置 OpenAI、Anthropic、Google、OpenRouter、DeepSeek（`createModels` 只注册这几个），加「自定义 OpenAI 兼容端点」（直接调 `openai-completions` API 实现，上下文窗口按 128k 估）。模型下拉用 pi-ai 的模型目录，不预设默认模型（目录按字母排序，模型 id 也会过时）。
 - **Host 权限**：内置 provider 的域名写进 `host_permissions`；自定义 baseUrl 走 `optional_host_permissions` 运行时申请。
-- **Thinking**：支持推理的模型用 `reasoning: 'low'`（总结类任务不需要深推理，响应更快）。`thinking_*` 事件 → 可展开的 “Thought for N seconds”。
+- **Thinking**：用户选思考强度，默认关闭（实测 DeepSeek V4.1 Flash 做 Recap：关闭约 2 秒出完，low / high 都要先思考约 8 秒，总结类任务质量差别不大）。只存一个偏好值 `llm.thinking`，输入框旁的按钮直接改它；档位列表来自 pi-ai `getSupportedThinkingLevels`，请求时用 `clampThinkingLevel` 对齐到当前模型支持的档位（如 V4 Pro 没有 low，会提到 high）。不能推理或不能关闭思考的模型不显示该按钮。`thinking_*` 事件 → 可展开的 “Thought for N seconds”。
 - **上下文预算**：system prompt 的 token 估算（CJK 1 字 ≈ 1 token，其余 4 字符 ≈ 1 token）+ 16k 余量超过 `model.contextWindow` 时只提示「视频过长，当前模型放不下」，长视频方案见 `TODO.md`。
 - Anthropic 浏览器直连所需的 `anthropic-dangerous-direct-browser-access` 头由 pi-ai 自动携带（已确认）。
 - **历史**：每轮回答保存 pi-ai 返回的原始 `AssistantMessage`，追问时原样回放；失败的回答及其提问不进历史。

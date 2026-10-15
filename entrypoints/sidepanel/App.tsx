@@ -9,7 +9,7 @@ import { TopBar } from '@/components/TopBar';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
 import { getSession, latestSessionFor } from '@/lib/db';
-import { resolveModel } from '@/lib/llm/providers';
+import { effectiveThinking, resolveModel, thinkingLevels } from '@/lib/llm/providers';
 import { PRESETS } from '@/lib/presets';
 import { saveSettings, useSettings } from '@/lib/settings';
 import { seekVideo } from '@/lib/tab';
@@ -36,7 +36,9 @@ export default function App() {
   const tabSessions = useRef(new Map<number, string>());
 
   const isEmpty = chat.messages.length === 0;
-  const needsSetup = !!settings && !resolveModel(settings.llm);
+  const resolved = settings && resolveModel(settings.llm);
+  const needsSetup = !!settings && !resolved;
+  const levels = resolved ? thinkingLevels(resolved.model) : [];
 
   useEffect(() => {
     if (settings) applyTheme(settings.theme);
@@ -154,6 +156,15 @@ export default function App() {
             generating={chat.generating}
             onSend={send}
             onStop={chat.stop}
+            thinking={
+              settings && resolved && levels.length > 0
+                ? {
+                    levels,
+                    value: effectiveThinking(resolved.model, settings.llm.thinking),
+                    onChange: (thinking) => void saveSettings({ ...settings, llm: { ...settings.llm, thinking } }),
+                  }
+                : undefined
+            }
           />
         )}
       </div>

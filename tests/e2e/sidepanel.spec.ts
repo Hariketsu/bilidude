@@ -78,6 +78,25 @@ test('follow-ups carry history and the playback position', async ({ context, ext
   expect(JSON.stringify(messages.at(-1).content)).toMatch(/Current playback position: 01:3\d/);
 });
 
+test('thinking is off by default and switchable next to the composer', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  const requests = await mockLlm(context, 'An answer. [00:06]');
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  const picker = panel.getByLabel('Thinking');
+  await expect(picker).toHaveValue('off');
+  // DeepSeek V4.1 Flash supports these levels; ones it lacks (medium) aren't offered.
+  await expect(picker.locator('option')).toHaveText(['Off', 'Low', 'High', 'Max']);
+  await ask(panel, { preset: 'Recap' });
+  expect(requests[0].thinking).toEqual({ type: 'disabled' });
+
+  await picker.selectOption('high');
+  await ask(panel, { text: 'More detail?' });
+  expect(requests[1].thinking).toEqual({ type: 'enabled' });
+  expect(requests[1].reasoning_effort).toBe('high');
+});
+
 test('explains when a video has no subtitles', async ({ context, extensionId }) => {
   await mockNoSubtitles(context);
   const { panel } = await openPanel(context, extensionId);

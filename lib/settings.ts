@@ -1,3 +1,4 @@
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { useEffect, useState } from 'react';
 import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
 import type { ThemePreference } from './theme';
@@ -11,6 +12,8 @@ export interface Settings {
     /** API key per provider. */
     apiKeys: Record<string, string>;
     customBaseUrl: string;
+    /** Preferred reasoning effort; each request clamps it to what the model supports. */
+    thinking: ModelThinkingLevel;
   };
   /** `auto` follows the browser UI language; otherwise a BCP 47 tag. */
   outputLanguage: string;
@@ -22,7 +25,8 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  llm: { provider: 'openai', models: {}, apiKeys: {}, customBaseUrl: '' },
+  // Thinking off: recaps come back in seconds instead of after a long reasoning pass.
+  llm: { provider: 'openai', models: {}, apiKeys: {}, customBaseUrl: '', thinking: 'off' },
   outputLanguage: 'auto',
   theme: 'system',
   sessionPolicy: 'new',

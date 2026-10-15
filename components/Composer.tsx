@@ -1,8 +1,10 @@
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { ArrowUp, Square, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { getPreset } from '@/lib/presets';
 import type { PresetId, VideoRef } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
+import { ThinkingPicker } from './ThinkingPicker';
 
 export function Composer({
   video,
@@ -12,6 +14,7 @@ export function Composer({
   generating,
   onSend,
   onStop,
+  thinking,
 }: {
   video?: VideoRef;
   /** The attachment card rides along only with the first message of a session. */
@@ -21,6 +24,8 @@ export function Composer({
   generating: boolean;
   onSend: (text: string) => void;
   onStop: () => void;
+  /** Shown only for models that can reason. */
+  thinking?: { levels: ModelThinkingLevel[]; value: ModelThinkingLevel; onChange: (level: ModelThinkingLevel) => void };
 }) {
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -75,6 +80,7 @@ export function Composer({
             className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent py-1.5 text-[15px] text-fg outline-none placeholder:text-fg-muted disabled:cursor-not-allowed"
           />
         </div>
+        {thinking && <ThinkingPicker {...thinking} />}
         {generating ? (
           <button
             type="button"

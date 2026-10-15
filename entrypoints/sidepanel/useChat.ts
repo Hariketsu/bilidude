@@ -5,7 +5,7 @@ import { transcribeVideo } from '@/lib/asr/transcribe';
 import { createCitations } from '@/lib/citations';
 import { saveSession, videoKeyOf, type Session } from '@/lib/db';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
-import { resolveModel, streamChat } from '@/lib/llm/providers';
+import { reasoningOption, resolveModel, streamChat } from '@/lib/llm/providers';
 import { resolveOutputLanguage, type Settings } from '@/lib/settings';
 import { getPlaybackTime } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
@@ -134,7 +134,7 @@ export function useChat(settings: Settings | undefined) {
         apiKey,
         signal: controller.signal,
         sessionId: session.id,
-        reasoning: model.reasoning ? 'low' : undefined,
+        reasoning: reasoningOption(model, settings.llm.thinking),
       });
     } catch (error) {
       update(id, { status: 'error', error: errorMessage(error) });
