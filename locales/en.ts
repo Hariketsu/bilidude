@@ -4,7 +4,6 @@ const en = {
     newChat: 'New chat',
     history: 'History',
     settings: 'Settings',
-    export: 'Export conversation',
   },
   common: {
     back: 'Back',
@@ -75,6 +74,19 @@ const en = {
     delete: 'Delete',
     justNow: 'just now',
     export: 'Export',
+  },
+  download: {
+    menu: 'Download',
+    conversation: 'Conversation (.md)',
+    srt: 'Subtitles (.srt)',
+    txt: 'Subtitles as text (.txt)',
+    checking: 'Checking for subtitles…',
+    willTranscribe: 'No subtitles. The audio will be transcribed first, then downloaded.',
+    transcriptionOff: 'No subtitles. Turn on audio transcription to get them.',
+    openSettings: 'Open settings',
+    transcribing: 'Getting subtitles · {{progress}}',
+    failed: "Couldn't get the subtitles: {{error}}",
+    dismiss: 'Dismiss',
   },
   export: {
     uploader: 'Uploader: {{name}}',

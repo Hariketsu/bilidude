@@ -1,4 +1,5 @@
 // Deterministic UI tests: subtitles and the LLM are mocked, so these always run.
+import { readFile } from 'node:fs/promises';
 import { ask, chipSeconds, configure, expect, MOCK_LLM, mockLlm, mockNoSubtitles, mockSubtitles, openPanel, test } from './fixtures';
 
 test('asks to open a video when the active tab is not one', async ({ context, extensionId }) => {
@@ -131,4 +132,33 @@ test('switches the interface language from settings', async ({ context, extensio
   await panel.getByRole('button', { name: '返回' }).click();
   await expect(panel.getByRole('button', { name: '摘要' })).toBeVisible();
   await expect(panel.getByRole('textbox')).toHaveAttribute('placeholder', '針對這部影片提問…');
+});
+
+test('downloads the subtitles as SRT, line by line', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  await panel.getByRole('button', { name: 'Download' }).click();
+  // Nothing to export before the first answer.
+  await expect(panel.getByRole('menuitem', { name: 'Conversation (.md)' })).toBeDisabled();
+  const download = panel.waitForEvent('download');
+  await panel.getByRole('menuitem', { name: 'Subtitles (.srt)' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/\.srt$/);
+  const srt = await readFile((await file.path())!, 'utf8');
+  // The original 6 s sentences, not the ~12 s lines the model reads.
+  expect(srt.startsWith('1\n00:00:00,000 --> 00:00:05,500\n大家好，今天我们聊一聊番茄工作法\n\n2\n00:00:06,000 --> ')).toBe(true);
+});
+
+test('offers to turn on transcription when a video has no subtitles', async ({ context, extensionId }) => {
+  await mockNoSubtitles(context);
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  await panel.getByRole('button', { name: 'Download' }).click();
+  await expect(panel.getByText('Turn on audio transcription to get them.')).toBeVisible();
+  await expect(panel.getByRole('menuitem', { name: 'Subtitles (.srt)' })).toBeDisabled();
+  await panel.getByRole('button', { name: 'Open settings' }).click();
+  await expect(panel.getByRole('heading', { name: 'Settings' })).toBeVisible();
 });

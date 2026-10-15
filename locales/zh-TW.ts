@@ -5,7 +5,6 @@ const zhTW: Messages = {
     newChat: '新對話',
     history: '歷史紀錄',
     settings: '設定',
-    export: '匯出對話',
   },
   common: {
     back: '返回',
@@ -75,6 +74,19 @@ const zhTW: Messages = {
     delete: '刪除',
     justNow: '剛剛',
     export: '匯出',
+  },
+  download: {
+    menu: '下載',
+    conversation: '對話（.md）',
+    srt: '字幕（.srt）',
+    txt: '字幕純文字（.txt）',
+    checking: '正在檢查字幕…',
+    willTranscribe: '沒有字幕，會先轉錄音訊再下載。',
+    transcriptionOff: '沒有字幕。開啟語音轉錄後即可取得。',
+    openSettings: '開啟設定',
+    transcribing: '正在取得字幕 · {{progress}}',
+    failed: '無法取得字幕：{{error}}',
+    dismiss: '關閉',
   },
   export: {
     uploader: 'UP 主：{{name}}',

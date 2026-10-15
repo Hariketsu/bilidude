@@ -55,6 +55,7 @@ async function fetchTranscript(video: VideoRef): Promise<Transcript | null> {
       source: track.lan.startsWith('ai-') ? 'ai' : 'cc',
       lang: track.lan.replace(/^ai-/, ''),
       lines: mergeLines(body, mergedChapters),
+      cues: toCues(body),
       chapters: mergedChapters,
     };
   }
@@ -71,6 +72,16 @@ export function rankTracks(tracks: BiliSubtitleTrack[]): BiliSubtitleTrack[] {
 function matchesDuration(body: BiliSubtitleLine[], durationSec: number): boolean {
   if (!durationSec) return true;
   return body[body.length - 1]!.to <= durationSec + DURATION_TOLERANCE_SECONDS;
+}
+
+/** The subtitle lines as they are, cleaned up: sorted, whitespace collapsed, empty and repeated lines dropped. */
+export function toCues(body: BiliSubtitleLine[]): TranscriptLine[] {
+  const cues: TranscriptLine[] = [];
+  for (const item of [...body].sort((a, b) => a.from - b.from)) {
+    const text = item.content.replace(/\s+/g, ' ').trim();
+    if (text && text !== cues.at(-1)?.text) cues.push({ from: item.from, to: item.to, text });
+  }
+  return cues;
 }
 
 /** Merges short subtitle lines into ~10s lines without crossing chapter starts. */

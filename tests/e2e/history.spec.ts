@@ -87,7 +87,8 @@ test('exports a conversation as Markdown with linked timestamps', async ({ conte
   await ask(panel, { preset: 'Recap' });
 
   const download = panel.waitForEvent('download');
-  await panel.getByRole('button', { name: 'Export conversation' }).click();
+  await panel.getByRole('button', { name: 'Download' }).click();
+  await panel.getByRole('menuitem', { name: 'Conversation (.md)' }).click();
   const file = await download;
   expect(file.suggestedFilename()).toMatch(/\.md$/);
   const markdown = await readFile((await file.path())!, 'utf8');

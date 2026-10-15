@@ -6,7 +6,7 @@ import type { AnswerPhase, VideoRef } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { AttachmentPill } from './AttachmentCard';
 
-function describe(progress: AsrProgress | undefined): string {
+export function describeAsrProgress(progress: AsrProgress | undefined): string {
   if (!progress || progress.stage === 'downloading') {
     const percent = progress ? Math.round(progress.fraction * 100) : 0;
     return percent > 0 ? t('answer.downloadingPercent', { percent }) : t('answer.downloading');
@@ -46,7 +46,7 @@ export function ThinkingSteps({
         <div className="space-y-1 pl-7 text-sm text-fg-muted">
           <div>{t('answer.noSubtitles')}</div>
           <div data-testid="asr-progress" className="tabular-nums">
-            {describe(asrProgress)}
+            {describeAsrProgress(asrProgress)}
           </div>
         </div>
       )}

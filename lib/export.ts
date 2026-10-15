@@ -49,15 +49,24 @@ export async function sessionToMarkdown(session: Session, links: boolean): Promi
   return `${parts.join('\n\n')}\n`;
 }
 
-/** Saves the conversation as `<video title>.md` through the browser's download flow. */
-export async function downloadSession(session: Session, links: boolean) {
-  const markdown = await sessionToMarkdown(session, links);
-  const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }));
+/** A file name for the video: its title (plus the part for multi-part videos), minus characters file systems reject. */
+export function fileNameFor(video: VideoRef, extension: string): string {
+  const title = video.p > 1 ? `${video.title} P${video.p}` : video.title;
+  return `${title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || video.bvid}.${extension}`;
+}
+
+/** Hands `text` to the browser's download flow. */
+export function saveTextFile(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
   const anchor = document.createElement('a');
   anchor.href = url;
-  // Characters most file systems reject.
-  anchor.download = `${session.video.title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || session.video.bvid}.md`;
+  anchor.download = name;
   anchor.click();
   // Revoking right away can cancel the download before it starts.
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** Saves the conversation as `<video title>.md`. */
+export async function downloadSession(session: Session, links: boolean) {
+  saveTextFile(fileNameFor(session.video, 'md'), await sessionToMarkdown(session, links), 'text/markdown');
 }

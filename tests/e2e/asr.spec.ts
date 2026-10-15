@@ -1,5 +1,6 @@
 // Speech recognition for videos without subtitles. The default video (BV1GJ411x7h7) is a
 // 3:33 English song, so its real audio gives recognizable text.
+import { readFile } from 'node:fs/promises';
 import {
   ask,
   configure,
@@ -201,4 +202,24 @@ test('starts transcribing when the panel opens, if set to', async ({ context, ex
 
   await expect.poll(() => uploads, { timeout: 60_000 }).toBe(1);
   await expect(panel.getByTestId('answer')).toHaveCount(0);
+});
+
+test('downloading subtitles transcribes a video without them first', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  await context.route('https://api.siliconflow.cn/v1/audio/transcriptions', (route) =>
+    route.fulfill({ json: { text: '第一句。第二句。' } }),
+  );
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { provider: 'siliconflow', apiKeys: { siliconflow: 'sk-test' } });
+
+  await panel.getByRole('button', { name: 'Download' }).click();
+  await expect(panel.getByText('The audio will be transcribed first')).toBeVisible();
+  const download = panel.waitForEvent('download', { timeout: 60_000 });
+  await panel.getByRole('menuitem', { name: 'Subtitles as text (.txt)' }).click();
+  await expect(panel.getByTestId('subtitle-job')).toContainText('Getting subtitles');
+  const text = await readFile((await (await download).path())!, 'utf8');
+  // Sentences, one per line: two per chunk.
+  expect(text.trim().split('\n').slice(0, 4)).toEqual(['第一句。', '第二句。', '第一句。', '第二句。']);
+  await expect(panel.getByTestId('subtitle-job')).toHaveCount(0);
 });

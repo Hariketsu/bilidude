@@ -1,6 +1,6 @@
 import { fetchPlayerInfo } from '../bili/api';
 import { deleteAsrChunks, loadAsrChunk, storeAsrChunk, storeTranscript } from '../db';
-import { mergeLines, parseAuthorChapters, rememberTranscript } from '../transcript';
+import { mergeLines, parseAuthorChapters, rememberTranscript, toCues } from '../transcript';
 import type { Transcript, VideoRef } from '../types';
 import { splitAac } from './aac';
 import { planCuts } from './silence';
@@ -99,6 +99,7 @@ async function run(video: VideoRef, config: AsrConfig, report: (p: AsrProgress) 
     source: 'asr',
     lang: '',
     lines: mergeLines(body, chapters),
+    cues: toCues(body),
     chapters,
     approximateTimes: results.some((r) => r.approximate) || undefined,
   };

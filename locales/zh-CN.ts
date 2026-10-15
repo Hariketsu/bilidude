@@ -5,7 +5,6 @@ const zhCN: Messages = {
     newChat: '新对话',
     history: '历史记录',
     settings: '设置',
-    export: '导出对话',
   },
   common: {
     back: '返回',
@@ -75,6 +74,19 @@ const zhCN: Messages = {
     delete: '删除',
     justNow: '刚刚',
     export: '导出',
+  },
+  download: {
+    menu: '下载',
+    conversation: '对话（.md）',
+    srt: '字幕（.srt）',
+    txt: '字幕纯文本（.txt）',
+    checking: '正在检查字幕…',
+    willTranscribe: '没有字幕，将先转写音频再下载。',
+    transcriptionOff: '没有字幕。开启语音转写后即可获取。',
+    openSettings: '打开设置',
+    transcribing: '正在获取字幕 · {{progress}}',
+    failed: '无法获取字幕：{{error}}',
+    dismiss: '关闭',
   },
   export: {
     uploader: 'UP 主：{{name}}',

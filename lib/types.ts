@@ -32,6 +32,11 @@ export interface Transcript {
   source: 'cc' | 'ai' | 'asr';
   lang: string;
   lines: TranscriptLine[];
+  /**
+   * The original subtitle lines (or recognized sentences), unmerged, for subtitle downloads.
+   * Missing from transcripts cached before downloads existed.
+   */
+  cues?: TranscriptLine[];
   /** Official chapters, or the author's timeline from the description. */
   chapters: Chapter[];
   /** Line times were estimated (the ASR provider returned text without timestamps). */
