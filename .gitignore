@@ -35,3 +35,6 @@ playwright-report/
 
 # Local handoff notes
 HANDOFF.md
+
+# Design prototypes (discussion only)
+designs/
