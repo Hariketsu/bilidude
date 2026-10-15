@@ -57,7 +57,11 @@ export function fileNameFor(video: VideoRef, extension: string): string {
 
 /** Hands `text` to the browser's download flow. */
 export function saveTextFile(name: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
+  saveBlob(name, new Blob([text], { type: `${type};charset=utf-8` }));
+}
+
+export function saveBlob(name: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = name;

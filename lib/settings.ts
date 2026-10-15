@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
 import { DEFAULT_CACHE_POLICY, type CachePolicy } from './cache';
 import { resolveUiLanguage, type UiLanguageSetting } from './i18n';
+import type { ExportBundle } from './batchExport';
 import type { ThemePreference } from './theme';
 
 export interface Settings {
@@ -28,6 +29,8 @@ export interface Settings {
   asr: AsrSettings;
   /** Copied answers and exported conversations link their timestamps to the video. */
   exportLinks: boolean;
+  /** How several files from the history download: one ZIP, or each on its own. */
+  exportBundle: ExportBundle;
   /** When cached transcripts are deleted. */
   cache: CachePolicy;
 }
@@ -41,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sessionPolicy: 'new',
   asr: DEFAULT_ASR_SETTINGS,
   exportLinks: true,
+  exportBundle: 'zip',
   cache: DEFAULT_CACHE_POLICY,
 };
 

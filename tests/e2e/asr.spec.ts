@@ -247,3 +247,54 @@ test('a transcription can be stopped from the video card', async ({ context, ext
   await expect(panel.getByTestId('subtitle-icon')).toHaveAttribute('data-state', 'transcribe');
   expect(downloaded).toBe(false);
 });
+
+test('the history offers to transcribe videos without subtitles before downloading them', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  await context.route('https://api.siliconflow.cn/v1/audio/transcriptions', (route) =>
+    route.fulfill({ json: { text: '第一句。第二句。' } }),
+  );
+  await mockLlm(context, 'A song. [00:20]');
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { provider: 'siliconflow', apiKeys: { siliconflow: 'sk-test' } });
+  const answer = await ask(panel, { preset: 'Recap' }, 60_000);
+  await expect(answer).toHaveAttribute('data-status', 'done');
+
+  // Forget the transcription, as if the cache had been cleared.
+  await panel.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        indexedDB.open('bilidude').onsuccess = (e) => {
+          const tx = (e.target as IDBOpenDBRequest).result.transaction('transcripts', 'readwrite');
+          tx.objectStore('transcripts').clear();
+          tx.oncomplete = () => resolve();
+        };
+      }),
+  );
+  await panel.reload();
+
+  const downloads: string[] = [];
+  panel.on('download', (d) => downloads.push(d.suggestedFilename()));
+  const openSheet = async () => {
+    await panel.getByRole('button', { name: 'History' }).click();
+    await panel.getByTestId('history-item').hover();
+    await panel.getByRole('button', { name: 'Export' }).click();
+    const sheet = panel.getByTestId('export-sheet');
+    await sheet.getByText('Conversation (.md)').click(); // subtitles only
+    await sheet.getByText('Subtitles (.srt)').click();
+    await expect(sheet).toContainText('1 video has no subtitles');
+    return sheet;
+  };
+
+  // Skipped unless asked for.
+  let sheet = await openSheet();
+  await sheet.getByRole('button', { name: 'Download' }).click();
+  await expect(panel.getByTestId('history-bar')).toContainText('Skipped 1 video without subtitles');
+  expect(downloads).toEqual([]);
+
+  await panel.getByRole('button', { name: 'Back' }).click();
+  sheet = await openSheet();
+  await sheet.getByText('Transcribe them first').click();
+  await sheet.getByRole('button', { name: 'Download' }).click();
+  await expect.poll(() => downloads).toEqual([expect.stringMatching(/\.srt$/)]);
+});

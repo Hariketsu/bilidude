@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import type { Page } from '@playwright/test';
+import type { Download, Page } from '@playwright/test';
+import { strFromU8, unzipSync } from 'fflate';
 import { ask, configure, DEFAULT_BVID, expect, MOCK_LLM, mockLlm, mockSubtitles, openPanel, test } from './fixtures';
 
 test.beforeEach(async ({ context }) => {
@@ -101,6 +102,50 @@ test('exports a conversation as Markdown with linked timestamps', async ({ conte
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await panel.getByRole('button', { name: 'Copy' }).click();
   expect(await panel.evaluate(() => navigator.clipboard.readText())).toContain('[00:12](https://www.bilibili.com/video/BV1GJ411x7h7/?t=12)');
+});
+
+test('downloads several conversations and their subtitles from the history', async ({ context, extensionId }) => {
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await ask(panel, { preset: 'Recap' });
+  await panel.getByRole('button', { name: 'New chat' }).click();
+  await ask(panel, { text: 'Second question' });
+  await panel.getByRole('button', { name: 'History' }).click();
+  await expect(panel.getByTestId('history-item')).toHaveCount(2);
+
+  const downloads: Download[] = [];
+  panel.on('download', (d) => downloads.push(d));
+  const chooseAndDownload = async (bundle: 'One ZIP file' | 'Separate files') => {
+    await panel.getByRole('button', { name: 'Select', exact: true }).click();
+    await panel.getByText('Select all').click();
+    await expect(panel.getByTestId('history-bar')).toContainText('2 selected');
+    await panel.getByTestId('history-bar').getByRole('button', { name: 'Download' }).click();
+    const sheet = panel.getByTestId('export-sheet');
+    await sheet.getByText('Subtitles (.srt)').click();
+    await sheet.getByRole('button', { name: bundle }).click();
+    await sheet.getByRole('button', { name: 'Download' }).click();
+  };
+
+  // One ZIP: a Markdown file per conversation, the shared video's subtitles once.
+  await chooseAndDownload('One ZIP file');
+  await expect.poll(() => downloads.length).toBe(1);
+  expect(downloads[0]!.suggestedFilename()).toMatch(/^bilidude-.*\.zip$/);
+  const zip = unzipSync(await readFile((await downloads[0]!.path())!));
+  const names = Object.keys(zip).sort();
+  expect(names).toHaveLength(3);
+  expect(names.filter((n) => n.endsWith('.md'))).toHaveLength(2);
+  expect(names.filter((n) => n.endsWith(' (2).md'))).toHaveLength(1);
+  const srt = names.find((n) => n.endsWith('.srt'))!;
+  expect(strFromU8(zip[srt]!)).toContain('-->');
+
+  // Separate files, the choice remembered for next time.
+  await chooseAndDownload('Separate files');
+  await expect.poll(() => downloads.length).toBe(4);
+  expect(downloads.slice(1).map((d) => d.suggestedFilename().split('.').pop()).sort()).toEqual(['md', 'md', 'srt']);
+  await panel.getByRole('button', { name: 'Select', exact: true }).click();
+  await panel.getByText('Select all').click();
+  await panel.getByTestId('history-bar').getByRole('button', { name: 'Download' }).click();
+  await expect(panel.getByTestId('export-sheet').getByRole('button', { name: 'Separate files' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('expires unused cached subtitles but keeps those of the history', async ({ context, extensionId }) => {

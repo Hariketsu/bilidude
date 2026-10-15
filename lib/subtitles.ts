@@ -19,9 +19,15 @@ export function toTxt(cues: TranscriptLine[]): string {
   return `${cues.map((cue) => cue.text).join('\n')}\n`;
 }
 
-/** Saves the video's subtitles; transcripts cached before cues were kept fall back to the merged lines. */
-export function downloadSubtitles(video: VideoRef, transcript: Transcript, format: SubtitleFormat) {
+/** The video's subtitles as a file; transcripts cached before cues were kept fall back to the merged lines. */
+export function subtitleFile(video: VideoRef, transcript: Transcript, format: SubtitleFormat) {
   const cues = transcript.cues ?? transcript.lines;
-  if (format === 'srt') saveTextFile(fileNameFor(video, 'srt'), toSrt(cues), 'application/x-subrip');
-  else saveTextFile(fileNameFor(video, 'txt'), toTxt(cues), 'text/plain');
+  return format === 'srt'
+    ? { name: fileNameFor(video, 'srt'), text: toSrt(cues), type: 'application/x-subrip' }
+    : { name: fileNameFor(video, 'txt'), text: toTxt(cues), type: 'text/plain' };
+}
+
+export function downloadSubtitles(video: VideoRef, transcript: Transcript, format: SubtitleFormat) {
+  const file = subtitleFile(video, transcript, format);
+  saveTextFile(file.name, file.text, file.type);
 }

@@ -1,10 +1,16 @@
 import { ArrowLeft, Download, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { resolveAsr } from '@/lib/asr/providers';
+import { watchTranscription, type AsrProgress } from '@/lib/asr/transcribe';
+import { runExport } from '@/lib/batchExport';
 import { deleteSession, listSessions, type Session } from '@/lib/db';
 import { t } from '@/lib/i18n';
+import { saveSettings, type Settings } from '@/lib/settings';
 import { BiliIcon } from './BiliIcon';
+import { ExportSheet, type ExportChoice } from './ExportSheet';
 import { IconButton } from './IconButton';
+import { CardProgress } from './TranscriptionProgress';
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 86_400_000],
@@ -30,34 +36,171 @@ function firstQuestion(session: Session): string {
   return [first.preset && t(`presets.${first.preset}`), first.text].filter(Boolean).join(' · ');
 }
 
+function HistoryItem({
+  session,
+  current,
+  selecting,
+  selected,
+  onClick,
+  onExport,
+  onDelete,
+}: {
+  session: Session;
+  current: boolean;
+  selecting: boolean;
+  selected: boolean;
+  onClick: () => void;
+  onExport: () => void;
+  onDelete: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [progress, setProgress] = useState<AsrProgress>();
+  useEffect(() => watchTranscription(session.video, setProgress), [session.video.bvid, session.video.cid]);
+
+  return (
+    <li className="group relative">
+      <button
+        type="button"
+        data-testid="history-item"
+        aria-pressed={selecting ? selected : undefined}
+        onClick={onClick}
+        className={`flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-fill-hover ${
+          selecting ? '' : 'pr-[4.5rem]'
+        } ${current && !selecting ? 'bg-surface' : ''} ${selecting && selected ? 'bg-surface' : ''}`}
+      >
+        {selecting && (
+          <input
+            type="checkbox"
+            readOnly
+            tabIndex={-1}
+            checked={selected}
+            className="pointer-events-none size-4 shrink-0 accent-accent"
+          />
+        )}
+        {session.video.coverUrl ? (
+          <img
+            src={`${session.video.coverUrl}@320w_180h_1c.webp`}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="aspect-video w-24 shrink-0 rounded-lg bg-surface object-cover"
+          />
+        ) : (
+          <div className="flex aspect-video w-24 shrink-0 items-center justify-center rounded-lg bg-surface">
+            <BiliIcon className="size-6 text-bili" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="line-clamp-2 text-sm leading-snug text-fg">{session.video.title}</div>
+          {progress ? (
+            <div className="flex items-center gap-1.5 text-xs text-fg-muted">
+              <CardProgress progress={progress} />
+            </div>
+          ) : (
+            <div className="truncate text-xs text-fg-muted">{firstQuestion(session)}</div>
+          )}
+          <div className="text-xs text-fg-muted">{formatAgo(session.updatedAt, i18n.language)}</div>
+        </div>
+      </button>
+      {!selecting && (
+        <div className="absolute top-1/2 right-1 flex -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <IconButton icon={Download} label={t('history.export')} onClick={onExport} />
+          <IconButton icon={Trash2} label={t('history.delete')} onClick={onDelete} />
+        </div>
+      )}
+    </li>
+  );
+}
+
 export function HistoryPanel({
   currentSessionId,
+  settings,
   onOpen,
-  onExport,
+  onOpenSettings,
   onClose,
 }: {
   currentSessionId: string;
+  settings: Settings;
   onOpen: (session: Session) => void;
-  onExport: (session: Session) => void;
+  onOpenSettings: () => void;
   onClose: () => void;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<Session[]>();
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  /** The sessions the download sheet is for. */
+  const [exporting, setExporting] = useState<Session[]>();
+  /** While a download runs: how far its transcriptions have got. */
+  const [job, setJob] = useState<{ done: number; total: number } | 'running'>();
+  const [notice, setNotice] = useState<string>();
+  const controller = useRef<AbortController>(undefined);
+  const asr = resolveAsr(settings.asr);
 
   useEffect(() => {
     void listSessions().then(setSessions);
   }, []);
 
-  const remove = async (id: string) => {
-    await deleteSession(id);
-    setSessions((prev) => prev?.filter((s) => s.id !== id));
+  const remove = async (ids: string[]) => {
+    await Promise.all(ids.map(deleteSession));
+    setSessions((prev) => prev?.filter((s) => !ids.includes(s.id)));
+    setSelected(new Set());
   };
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+
+  const start = async (targets: Session[], { formats, bundle, transcribe }: ExportChoice) => {
+    setExporting(undefined);
+    setSelecting(false);
+    setSelected(new Set());
+    setNotice(undefined);
+    if (bundle !== settings.exportBundle) void saveSettings({ ...settings, exportBundle: bundle });
+    controller.current = new AbortController();
+    setJob('running');
+    try {
+      const { skipped, failed } = await runExport({
+        sessions: targets,
+        formats,
+        bundle,
+        asr: transcribe ? asr : undefined,
+        links: settings.exportLinks,
+        signal: controller.current.signal,
+        onTranscribing: (done, total) => setJob({ done, total }),
+      });
+      const notes = [
+        skipped > 0 && t('history.skipped', { count: skipped }),
+        failed > 0 && t('history.failed', { count: failed }),
+      ].filter(Boolean);
+      setNotice(notes.join(' · ') || undefined);
+    } finally {
+      setJob(undefined);
+    }
+  };
+
+  const chosen = sessions?.filter((s) => selected.has(s.id)) ?? [];
+  const allSelected = !!sessions && sessions.length > 0 && chosen.length === sessions.length;
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col bg-bg">
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
         <IconButton icon={ArrowLeft} label={t('common.back')} onClick={onClose} />
-        <h1 className="text-[15px] font-semibold">{t('history.title')}</h1>
+        <h1 className="flex-1 text-[15px] font-semibold">{t('history.title')}</h1>
+        {!!sessions?.length && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelecting(!selecting);
+              setSelected(new Set());
+            }}
+            className="rounded-lg px-2.5 py-1 text-sm text-fg-muted transition-colors hover:bg-fill-hover hover:text-fg"
+          >
+            {selecting ? t('history.done') : t('history.select')}
+          </button>
+        )}
       </header>
       <div className="flex-1 overflow-y-auto px-3 pb-6">
         {sessions?.length === 0 && (
@@ -65,41 +208,97 @@ export function HistoryPanel({
         )}
         <ul className="space-y-1">
           {sessions?.map((session) => (
-            <li key={session.id} className="group relative">
-              <button
-                type="button"
-                data-testid="history-item"
-                onClick={() => onOpen(session)}
-                className={`flex w-full items-center gap-3 rounded-xl p-2 pr-[4.5rem] text-left transition-colors hover:bg-fill-hover ${
-                  session.id === currentSessionId ? 'bg-surface' : ''
-                }`}
-              >
-                {session.video.coverUrl ? (
-                  <img
-                    src={`${session.video.coverUrl}@320w_180h_1c.webp`}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="aspect-video w-24 shrink-0 rounded-lg bg-surface object-cover"
-                  />
-                ) : (
-                  <div className="flex aspect-video w-24 shrink-0 items-center justify-center rounded-lg bg-surface">
-                    <BiliIcon className="size-6 text-bili" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="line-clamp-2 text-sm leading-snug text-fg">{session.video.title}</div>
-                  <div className="truncate text-xs text-fg-muted">{firstQuestion(session)}</div>
-                  <div className="text-xs text-fg-muted">{formatAgo(session.updatedAt, i18n.language)}</div>
-                </div>
-              </button>
-              <div className="absolute top-1/2 right-1 flex -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                <IconButton icon={Download} label={t('history.export')} onClick={() => onExport(session)} />
-                <IconButton icon={Trash2} label={t('history.delete')} onClick={() => void remove(session.id)} />
-              </div>
-            </li>
+            <HistoryItem
+              key={session.id}
+              session={session}
+              current={session.id === currentSessionId}
+              selecting={selecting}
+              selected={selected.has(session.id)}
+              onClick={() => (selecting ? toggle(session.id) : onOpen(session))}
+              onExport={() => setExporting([session])}
+              onDelete={() => void remove([session.id])}
+            />
           ))}
         </ul>
       </div>
+
+      {(selecting || job || notice) && (
+        <footer
+          data-testid="history-bar"
+          className="flex min-h-14 shrink-0 items-center gap-2 border-t border-border px-3 py-2 text-sm"
+        >
+          {job ? (
+            <>
+              <div className="min-w-0 flex-1">
+                {typeof job === 'object' && (
+                  <div className="text-fg tabular-nums">{t('history.transcribing', { done: job.done + 1, total: job.total })}</div>
+                )}
+                <div className="text-xs text-fg-muted">{t('history.keepOpen')}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => controller.current?.abort()}
+                className="rounded-full px-3 py-1.5 text-fg-muted hover:bg-fill-hover hover:text-fg"
+              >
+                {t('history.stop')}
+              </button>
+            </>
+          ) : selecting ? (
+            <>
+              <label className="flex cursor-pointer items-center gap-2 text-fg-muted">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={() => setSelected(new Set(allSelected ? [] : sessions?.map((s) => s.id)))}
+                  className="size-4 accent-accent"
+                />
+                {t('history.selectAll')}
+              </label>
+              <span className="flex-1 text-center text-xs text-fg-muted tabular-nums">
+                {chosen.length > 0 && t('history.selected', { count: chosen.length })}
+              </span>
+              <button
+                type="button"
+                disabled={chosen.length === 0}
+                onClick={() => void remove(chosen.map((s) => s.id))}
+                className="rounded-full px-3 py-1.5 text-fg-muted enabled:hover:bg-fill-hover enabled:hover:text-fg disabled:opacity-40"
+              >
+                {t('history.delete')}
+              </button>
+              <button
+                type="button"
+                disabled={chosen.length === 0}
+                onClick={() => setExporting(chosen)}
+                className="rounded-full bg-accent px-4 py-1.5 font-medium text-white disabled:opacity-40"
+              >
+                {t('history.download')}
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 text-fg-muted">{notice}</span>
+              <button
+                type="button"
+                onClick={() => setNotice(undefined)}
+                className="rounded-full px-3 py-1.5 text-fg-muted hover:bg-fill-hover hover:text-fg"
+              >
+                {t('history.done')}
+              </button>
+            </>
+          )}
+        </footer>
+      )}
+
+      {exporting && (
+        <ExportSheet
+          sessions={exporting}
+          bundle={settings.exportBundle}
+          canTranscribe={!!asr}
+          onStart={(choice) => void start(exporting, choice)}
+          onCancel={() => setExporting(undefined)}
+          onOpenSettings={onOpenSettings}
+        />
+      )}
     </div>
   );
 }

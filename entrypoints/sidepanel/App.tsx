@@ -250,10 +250,11 @@ export default function App() {
       </div>
 
       {overlay === 'settings' && settings && <SettingsPanel settings={settings} onClose={() => setOverlay(undefined)} />}
-      {overlay === 'history' && (
+      {overlay === 'history' && settings && (
         <HistoryPanel
           currentSessionId={chat.sessionId}
-          onExport={(session) => void downloadSession(session, settings?.exportLinks ?? true)}
+          settings={settings}
+          onOpenSettings={() => setOverlay('settings')}
           onOpen={(session) => {
             chat.load(session);
             setPreset(undefined);
