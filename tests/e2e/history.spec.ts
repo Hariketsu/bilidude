@@ -140,6 +140,15 @@ test('downloads several conversations and their subtitles from the history', asy
     await sheet.getByRole('button', { name: 'Download' }).click();
   };
 
+  // Esc closes the sheet without downloading.
+  await panel.getByRole('button', { name: 'Select', exact: true }).click();
+  await panel.getByText('Select all').click();
+  await panel.getByTestId('history-bar').getByRole('button', { name: 'Download' }).click();
+  await expect(panel.getByTestId('export-sheet')).toBeVisible();
+  await panel.keyboard.press('Escape');
+  await expect(panel.getByTestId('export-sheet')).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Done' }).click();
+
   // One ZIP: a Markdown file per conversation, the shared video's subtitles once.
   await chooseAndDownload('One ZIP file');
   await expect.poll(() => downloads.length).toBe(1);

@@ -61,6 +61,12 @@ export function ExportSheet({
     };
   }, [wantsSubtitles]);
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onCancel();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
   const toggle = (id: ExportFormat) => (on: boolean) =>
     setFormats((prev) => FORMATS.map((f) => f.id).filter((f) => (f === id ? on : prev.includes(f))));
   const minutes = Math.max(1, Math.round((missing ?? []).reduce((sum, v) => sum + v.durationSec, 0) / 60));
