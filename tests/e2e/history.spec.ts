@@ -45,6 +45,11 @@ test('deletes a conversation from history', async ({ context, extensionId }) => 
   await expect(dialog).toContainText('Delete this conversation?');
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(panel.getByTestId('history-item')).toHaveCount(1);
+  await panel.getByTestId('history-item').hover();
+  await panel.getByRole('button', { name: 'Delete' }).click();
+  await panel.keyboard.press('Escape');
+  await expect(panel.getByRole('alertdialog')).toHaveCount(0);
+  await expect(panel.getByTestId('history-item')).toHaveCount(1);
 
   await panel.getByTestId('history-item').hover();
   await panel.getByRole('button', { name: 'Delete' }).click();

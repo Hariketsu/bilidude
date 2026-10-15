@@ -142,6 +142,13 @@ export function HistoryPanel({
     void listSessions().then(setSessions);
   }, []);
 
+  useEffect(() => {
+    if (!deleting) return;
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setDeleting(undefined);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [!!deleting]);
+
   const remove = async (ids: string[]) => {
     await Promise.all(ids.map(deleteSession));
     setSessions((prev) => prev?.filter((s) => !ids.includes(s.id)));
