@@ -133,6 +133,8 @@ export function HistoryPanel({
   /** While a download runs: how far its transcriptions have got. */
   const [job, setJob] = useState<{ done: number; total: number } | 'running'>();
   const [notice, setNotice] = useState<string>();
+  /** Sessions waiting for the user to confirm their deletion. */
+  const [deleting, setDeleting] = useState<string[]>();
   const controller = useRef<AbortController>(undefined);
   const asr = resolveAsr(settings.asr);
 
@@ -216,7 +218,7 @@ export function HistoryPanel({
               selected={selected.has(session.id)}
               onClick={() => (selecting ? toggle(session.id) : onOpen(session))}
               onExport={() => setExporting([session])}
-              onDelete={() => void remove([session.id])}
+              onDelete={() => setDeleting([session.id])}
             />
           ))}
         </ul>
@@ -260,7 +262,7 @@ export function HistoryPanel({
               <button
                 type="button"
                 disabled={chosen.length === 0}
-                onClick={() => void remove(chosen.map((s) => s.id))}
+                onClick={() => setDeleting(chosen.map((s) => s.id))}
                 className="rounded-full px-3 py-1.5 text-fg-muted enabled:hover:bg-fill-hover enabled:hover:text-fg disabled:opacity-40"
               >
                 {t('history.delete')}
@@ -287,6 +289,42 @@ export function HistoryPanel({
             </>
           )}
         </footer>
+      )}
+
+      {deleting && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 p-6" onClick={() => setDeleting(undefined)}>
+          <div
+            role="alertdialog"
+            aria-labelledby="delete-title"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-72 space-y-2 rounded-3xl border border-border bg-surface p-5 shadow-[0_8px_24px_rgb(0_0_0/0.18)]"
+          >
+            <h2 id="delete-title" className="text-[15px] font-semibold">
+              {t('history.deleteTitle', { count: deleting.length })}
+            </h2>
+            <p className="text-sm text-fg-muted">{t('history.deleteBody')}</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setDeleting(undefined)}
+                className="rounded-full px-4 py-2 text-sm text-fg-muted hover:bg-fill-hover hover:text-fg"
+              >
+                {t('history.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void remove(deleting);
+                  setDeleting(undefined);
+                }}
+                className="rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+              >
+                {t('history.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {exporting && (
