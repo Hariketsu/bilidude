@@ -1,6 +1,7 @@
 import { Copy, RotateCw } from 'lucide-react';
 import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
+import { useTypewriter } from '@/lib/typewriter';
 import type { AssistantMessage as AssistantMsg, UserMessage as UserMsg } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
 import { IconButton } from './IconButton';
@@ -37,14 +38,21 @@ export function AssistantMessage({
   onSeek?: (seconds: number) => void;
   onRegenerate?: () => void;
 }) {
-  const streaming = message.status === 'streaming';
-  const preparing = streaming && message.phase !== 'writing';
-  const text = streaming ? trimPartialTimestamp(message.text) : message.text;
+  const shown = useTypewriter(message.text, message.status === 'streaming');
+  // Still streaming on screen until the reveal catches up with the received text.
+  const streaming = message.status === 'streaming' || shown !== message.text;
+  const preparing = message.status === 'streaming' && message.phase !== 'writing';
+  const text = streaming ? trimPartialTimestamp(shown) : message.text;
 
   return (
-    <div data-testid="answer" data-status={message.status}>
+    <div data-testid="answer" data-status={streaming ? 'streaming' : message.status}>
       {preparing ? (
-        <ThinkingSteps phase={message.phase ?? 'reading'} video={message.video} asrProgress={message.asrProgress} />
+        <ThinkingSteps
+          phase={message.phase ?? 'reading'}
+          video={message.video}
+          asrProgress={message.asrProgress}
+          thinking={message.thinking}
+        />
       ) : (
         <>
           {message.thoughtMs !== undefined && (

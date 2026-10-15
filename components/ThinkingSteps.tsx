@@ -12,14 +12,20 @@ function describe(progress: AsrProgress | undefined): string {
   return `Transcribing audio · ${progress.done}/${progress.total}`;
 }
 
+/** Only the end of a long reasoning stream is visible; rendering all of it every frame is wasted work. */
+const THINKING_TAIL_CHARS = 600;
+
 export function ThinkingSteps({
   phase,
   video,
   asrProgress,
+  thinking,
 }: {
   phase: AnswerPhase;
   video: VideoRef;
   asrProgress?: AsrProgress;
+  /** The model's reasoning so far, shown live while it thinks. */
+  thinking?: string;
 }) {
   return (
     <div className="space-y-4 text-[15px]">
@@ -39,6 +45,14 @@ export function ThinkingSteps({
           <div data-testid="asr-progress" className="tabular-nums">
             {describe(asrProgress)}
           </div>
+        </div>
+      )}
+      {phase === 'thinking' && thinking && (
+        <div
+          data-testid="thinking-preview"
+          className="flex max-h-[4.5rem] flex-col justify-end overflow-hidden pl-7 text-sm leading-6 whitespace-pre-wrap text-fg-muted [mask-image:linear-gradient(to_bottom,transparent,black_70%)]"
+        >
+          <div>{thinking.slice(-THINKING_TAIL_CHARS)}</div>
         </div>
       )}
     </div>

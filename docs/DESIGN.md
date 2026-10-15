@@ -58,7 +58,8 @@
 - **推理步骤**：回答生成前按阶段显示，生成后折叠为 “Thought for N seconds >”。阶段：
   - `Reading 1 attachment`（拉元数据与字幕）
   - `No subtitles · Transcribing audio 3/7`（ASR）
-  - `Thinking…`（模型 thinking 流；可展开看内容）
+  - `Thinking…`（模型 thinking 流实时滚动显示最后几行，顶部渐隐；完成后可展开看全文）
+- **打字效果**：provider 的文本是成批到达的（DeepSeek 思考完后一两秒内吐出全部正文），所以正文按稳定节奏逐字显示：至少每帧 1 字，积压越多越快（约 0.5 秒追平）。显示追上之前 `data-status` 仍是 `streaming`，复制 / 重新生成按钮也不出现。恢复的历史会话直接整段显示。
 - **时间戳 chip**：小号圆角胶囊，B 站粉色播放图标 + `mm:ss`（补零，如 `00:05`；≥1 小时为 `h:mm:ss`）。点击跳转，当前 tab 不是该视频时在当前 tab 打开该视频并定位。
 - **回答操作**：复制（时间戳转成文本）、重新生成。
 - **空状态**：当前 tab 不是视频页时，附件卡片与预设隐藏，中间显示 “Open a Bilibili video to start”。
