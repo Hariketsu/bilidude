@@ -1,15 +1,14 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { ArrowUp, Square, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPreset } from '@/lib/presets';
 import type { PresetId, VideoRef } from '@/lib/types';
-import { AttachmentCard } from './AttachmentCard';
 import { ThinkingPicker } from './ThinkingPicker';
 
 export function Composer({
   video,
-  showAttachment,
+  attachment,
   preset,
   onClearPreset,
   generating,
@@ -19,7 +18,7 @@ export function Composer({
 }: {
   video?: VideoRef;
   /** The attachment card rides along only with the first message of a session. */
-  showAttachment: boolean;
+  attachment?: ReactNode;
   preset?: PresetId;
   onClearPreset: () => void;
   generating: boolean;
@@ -43,11 +42,7 @@ export function Composer({
 
   return (
     <div className="rounded-3xl border border-border bg-surface p-3 shadow-[0_2px_16px_rgb(0_0_0/0.06)]">
-      {video && showAttachment && (
-        <div className="mb-3">
-          <AttachmentCard video={video} />
-        </div>
-      )}
+      {attachment && <div className="mb-3">{attachment}</div>}
       <div className="flex items-end gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {preset && PresetIcon && (
@@ -78,7 +73,7 @@ export function Composer({
               }
               if (event.key === 'Backspace' && text === '' && preset) onClearPreset();
             }}
-            placeholder={preset ? '' : showAttachment ? t('composer.askAboutVideo') : t('composer.askAnother')}
+            placeholder={preset ? '' : attachment ? t('composer.askAboutVideo') : t('composer.askAnother')}
             className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent py-1.5 text-[15px] text-fg outline-none placeholder:text-fg-muted disabled:cursor-not-allowed"
           />
         </div>

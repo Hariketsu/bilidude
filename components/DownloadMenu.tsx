@@ -2,10 +2,8 @@ import { Captions, Download, FileText, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SubtitleFormat } from '@/lib/subtitles';
+import type { SubtitleStatus } from '@/lib/types';
 import { IconButton } from './IconButton';
-
-/** Whether subtitles can be downloaded now, need a transcription first, or can't be had. */
-export type SubtitleAvailability = 'ready' | 'transcribe' | 'off';
 
 function Item({ icon: Icon, label, disabled, onClick }: { icon: LucideIcon; label: string; disabled?: boolean; onClick: () => void }) {
   return (
@@ -22,41 +20,35 @@ function Item({ icon: Icon, label, disabled, onClick }: { icon: LucideIcon; labe
   );
 }
 
-/**
- * The top bar's download menu: the conversation as Markdown, and the video's subtitles.
- * Subtitle availability is checked when the menu opens (it may mean fetching them).
- */
+/** The top bar's download menu: the conversation as Markdown, and the video's subtitles. */
 export function DownloadMenu({
   canExport,
   onExport,
-  checkSubtitles,
+  subtitles: status,
+  pending,
   onDownloadSubtitles,
   onOpenSettings,
 }: {
   canExport: boolean;
   onExport: () => void;
-  checkSubtitles: () => Promise<SubtitleAvailability>;
+  subtitles: SubtitleStatus;
+  /** Subtitles will download when their transcription finishes. */
+  pending: boolean;
   onDownloadSubtitles: (format: SubtitleFormat) => void;
   onOpenSettings: () => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [subtitles, setSubtitles] = useState<SubtitleAvailability>();
   const ref = useRef<HTMLDivElement>(null);
+  const subtitles = typeof status === 'object' ? 'transcribe' : status;
 
   useEffect(() => {
     if (!open) return;
-    let current = true;
-    setSubtitles(undefined);
-    void checkSubtitles()
-      .catch((): SubtitleAvailability => 'transcribe')
-      .then((availability) => current && setSubtitles(availability));
     const onPointer = (event: PointerEvent) => !ref.current?.contains(event.target as Node) && setOpen(false);
     const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
     document.addEventListener('pointerdown', onPointer);
     document.addEventListener('keydown', onKey);
     return () => {
-      current = false;
       document.removeEventListener('pointerdown', onPointer);
       document.removeEventListener('keydown', onKey);
     };
@@ -72,6 +64,7 @@ export function DownloadMenu({
   return (
     <div ref={ref} className="relative">
       <IconButton icon={Download} label={t('download.menu')} onClick={() => setOpen(!open)} />
+      {pending && <span className="pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-accent" />}
       {open && (
         <div
           role="menu"

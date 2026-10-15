@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AttachmentCard } from '@/components/AttachmentCard';
 import { Composer } from '@/components/Composer';
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { HistoryPanel } from '@/components/HistoryPanel';
@@ -7,10 +8,9 @@ import { AssistantMessage, UserMessage } from '@/components/Messages';
 import { ModelSetup } from '@/components/ModelSettings';
 import { PresetChip } from '@/components/PresetChip';
 import { SettingsPanel } from '@/components/SettingsPanel';
-import { describeAsrProgress } from '@/components/ThinkingSteps';
 import { TopBar } from '@/components/TopBar';
 import { resolveAsr } from '@/lib/asr/providers';
-import { transcribeVideo, type AsrProgress } from '@/lib/asr/transcribe';
+import { cancelTranscription, transcribeVideo } from '@/lib/asr/transcribe';
 import { getSession, latestSessionFor } from '@/lib/db';
 import { pruneCacheDaily } from '@/lib/cache';
 import { downloadSession } from '@/lib/export';
@@ -25,6 +25,7 @@ import { applyTheme } from '@/lib/theme';
 import type { PresetId } from '@/lib/types';
 import { useActiveVideo } from './useActiveVideo';
 import { useChat } from './useChat';
+import { useSubtitleStatus } from './useSubtitleStatus';
 
 export default function App() {
   const { t } = useTranslation();
@@ -39,8 +40,9 @@ export default function App() {
 
   const [preset, setPreset] = useState<PresetId>();
   const [overlay, setOverlay] = useState<'settings' | 'history'>();
-  /** A transcription started from the download menu, shown under the top bar. */
-  const [subtitleJob, setSubtitleJob] = useState<{ progress: AsrProgress } | { error: string }>();
+  const subtitles = useSubtitleStatus(video, settings);
+  /** Subtitles waiting on a transcription started from the download menu, or why it failed. */
+  const [subtitleJob, setSubtitleJob] = useState<'pending' | { error: string }>();
   const bottomRef = useRef<HTMLDivElement>(null);
   /** The conversation each tab was showing, restored when switching back to it. */
   const tabSessions = useRef(new Map<number, string>());
@@ -50,6 +52,9 @@ export default function App() {
   const resolved = settings && resolveModel(settings.llm);
   const needsSetup = !!settings && !resolved;
   const levels = resolved ? thinkingLevels(resolved.model) : [];
+  // One place shows a transcription's progress: the answer waiting on it, otherwise the video's card.
+  const answerTranscribing = chat.messages.some((m) => m.role === 'assistant' && m.status === 'streaming' && m.phase === 'transcribing');
+  const subtitleError = typeof subtitleJob === 'object' ? subtitleJob.error : undefined;
 
   useEffect(() => {
     if (settings) applyTheme(settings.theme);
@@ -81,6 +86,7 @@ export default function App() {
   useEffect(() => {
     if (!settings) return;
     setPreset(undefined);
+    setSubtitleJob((job) => (job === 'pending' ? job : undefined));
     if (active.status === 'none') {
       chat.reset();
       return;
@@ -121,14 +127,15 @@ export default function App() {
       if (!transcript) {
         const asr = resolveAsr(settings.asr);
         if (!asr) return;
-        setSubtitleJob({ progress: { stage: 'downloading', fraction: 0 } });
+        setSubtitleJob('pending');
         // Joins a transcription already started by a question, if any.
-        transcript = await transcribeVideo(video, asr, (progress) => setSubtitleJob({ progress }));
+        transcript = await transcribeVideo(video, asr);
         setSubtitleJob(undefined);
       }
       downloadSubtitles(video, transcript, format);
     } catch (error) {
-      setSubtitleJob({ error: error instanceof Error ? error.message : String(error) });
+      if (error instanceof DOMException && error.name === 'AbortError') setSubtitleJob(undefined);
+      else setSubtitleJob({ error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -152,32 +159,14 @@ export default function App() {
               onExport={() =>
                 void getSession(chat.sessionId).then((session) => session && downloadSession(session, settings.exportLinks))
               }
-              checkSubtitles={async () =>
-                (await getTranscript(video)) ? 'ready' : resolveAsr(settings.asr) ? 'transcribe' : 'off'
-              }
+              subtitles={subtitles}
+              pending={subtitleJob === 'pending'}
               onDownloadSubtitles={(format) => void downloadVideoSubtitles(format)}
               onOpenSettings={() => setOverlay('settings')}
             />
           )
         }
       />
-      {subtitleJob && (
-        <div data-testid="subtitle-job" className="flex shrink-0 items-center gap-3 px-5 pb-2 text-xs text-fg-muted">
-          {'progress' in subtitleJob ? (
-            <span className="shimmer-text tabular-nums">
-              {t('download.transcribing', { progress: describeAsrProgress(subtitleJob.progress) })}
-            </span>
-          ) : (
-            <>
-              <span className="flex-1 text-red-500">{t('download.failed', { error: subtitleJob.error })}</span>
-              <button type="button" onClick={() => setSubtitleJob(undefined)} className="hover:text-fg">
-                {t('download.dismiss')}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto px-5">
         {isEmpty && needsSetup && settings && (
           <div className="mx-auto max-w-sm space-y-5 py-8">
@@ -197,7 +186,13 @@ export default function App() {
         <div className="space-y-8 py-4">
           {chat.messages.map((message) =>
             message.role === 'user' ? (
-              <UserMessage key={message.id} message={message} />
+              <UserMessage
+                key={message.id}
+                message={message}
+                subtitles={subtitles}
+                showProgress={!answerTranscribing}
+                subtitleError={subtitleError}
+              />
             ) : (
               <AssistantMessage
                 key={message.id}
@@ -224,7 +219,18 @@ export default function App() {
         {(video || !isEmpty) && !needsSetup && (
           <Composer
             video={video}
-            showAttachment={isEmpty}
+            attachment={
+              isEmpty &&
+              video && (
+                <AttachmentCard
+                  video={video}
+                  subtitles={subtitles}
+                  showProgress
+                  error={subtitleError}
+                  onCancel={() => cancelTranscription(video)}
+                />
+              )
+            }
             preset={preset}
             onClearPreset={() => setPreset(undefined)}
             generating={chat.generating}

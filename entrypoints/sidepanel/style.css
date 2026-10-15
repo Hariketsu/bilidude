@@ -15,6 +15,7 @@
   --bd-fg-muted: #6e737b;
   --bd-accent: #0a6fae;
   --bd-bili: #fb7299;
+  --bd-warn: #c2620a;
   --bd-scrollbar: rgb(0 0 0 / 0.15);
 }
 
@@ -30,6 +31,7 @@
   --bd-fg-muted: #9a9ea5;
   --bd-accent: #1aa3d9;
   --bd-bili: #fb7299;
+  --bd-warn: #f0a356;
   --bd-scrollbar: rgb(255 255 255 / 0.15);
 }
 
@@ -44,6 +46,7 @@
   --color-fg-muted: var(--bd-fg-muted);
   --color-accent: var(--bd-accent);
   --color-bili: var(--bd-bili);
+  --color-warn: var(--bd-warn);
 }
 
 body {

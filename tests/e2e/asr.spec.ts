@@ -217,9 +217,33 @@ test('downloading subtitles transcribes a video without them first', async ({ co
   await expect(panel.getByText('The audio will be transcribed first')).toBeVisible();
   const download = panel.waitForEvent('download', { timeout: 60_000 });
   await panel.getByRole('menuitem', { name: 'Subtitles as text (.txt)' }).click();
-  await expect(panel.getByTestId('subtitle-job')).toContainText('Getting subtitles');
+  // The progress shows on the video's card.
+  await expect(panel.getByTestId('card-progress')).toContainText(/Transcribing \d+%/);
   const text = await readFile((await (await download).path())!, 'utf8');
   // Sentences, one per line: two per chunk.
   expect(text.trim().split('\n').slice(0, 4)).toEqual(['第一句。', '第二句。', '第一句。', '第二句。']);
-  await expect(panel.getByTestId('subtitle-job')).toHaveCount(0);
+  await expect(panel.getByTestId('card-progress')).toHaveCount(0);
+  await expect(panel.getByTestId('subtitle-icon')).toHaveAttribute('data-state', 'ready');
+});
+
+test('a transcription can be stopped from the video card', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  let requests = 0;
+  // Never answers, so the transcription stays running until it is stopped.
+  await context.route('https://api.siliconflow.cn/v1/audio/transcriptions', () => void requests++);
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { provider: 'siliconflow', apiKeys: { siliconflow: 'sk-test' } });
+  await expect(panel.getByTestId('subtitle-icon')).toHaveAttribute('data-state', 'transcribe');
+
+  let downloaded = false;
+  panel.on('download', () => (downloaded = true));
+  await panel.getByRole('button', { name: 'Download' }).click();
+  await panel.getByRole('menuitem', { name: 'Subtitles (.srt)' }).click();
+  await expect.poll(() => requests, { timeout: 60_000 }).toBeGreaterThan(0);
+  await panel.getByRole('button', { name: 'Stop transcribing' }).click();
+
+  await expect(panel.getByTestId('card-progress')).toHaveCount(0);
+  await expect(panel.getByTestId('subtitle-icon')).toHaveAttribute('data-state', 'transcribe');
+  expect(downloaded).toBe(false);
 });

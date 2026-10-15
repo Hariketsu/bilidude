@@ -3,16 +3,8 @@ import { AtSign, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AsrProgress } from '@/lib/asr/transcribe';
 import type { AnswerPhase, VideoRef } from '@/lib/types';
-import { t } from '@/lib/i18n';
 import { AttachmentPill } from './AttachmentCard';
-
-export function describeAsrProgress(progress: AsrProgress | undefined): string {
-  if (!progress || progress.stage === 'downloading') {
-    const percent = progress ? Math.round(progress.fraction * 100) : 0;
-    return percent > 0 ? t('answer.downloadingPercent', { percent }) : t('answer.downloading');
-  }
-  return t('answer.transcribingProgress', { done: progress.done, total: progress.total });
-}
+import { AnswerProgress } from './TranscriptionProgress';
 
 /** Only the end of a long reasoning stream is visible; rendering all of it every frame is wasted work. */
 const THINKING_TAIL_CHARS = 600;
@@ -42,14 +34,7 @@ export function ThinkingSteps({
           <AttachmentPill video={video} />
         </div>
       </div>
-      {phase === 'transcribing' && (
-        <div className="space-y-1 pl-7 text-sm text-fg-muted">
-          <div>{t('answer.noSubtitles')}</div>
-          <div data-testid="asr-progress" className="tabular-nums">
-            {describeAsrProgress(asrProgress)}
-          </div>
-        </div>
-      )}
+      {phase === 'transcribing' && <AnswerProgress progress={asrProgress} />}
       {phase === 'thinking' && thinking && (
         <div
           data-testid="thinking-preview"

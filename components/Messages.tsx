@@ -4,17 +4,30 @@ import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
 import { formatAnswer } from '@/lib/export';
 import { useTypewriter } from '@/lib/typewriter';
-import type { AssistantMessage as AssistantMsg, UserMessage as UserMsg } from '@/lib/types';
+import type { AssistantMessage as AssistantMsg, SubtitleStatus, UserMessage as UserMsg } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
 import { IconButton } from './IconButton';
 import { Markdown } from './Markdown';
 import { PresetChip } from './PresetChip';
 import { ThinkingSteps, ThoughtSummary } from './ThinkingSteps';
 
-export function UserMessage({ message }: { message: UserMsg }) {
+export function UserMessage({
+  message,
+  subtitles,
+  showProgress,
+  subtitleError,
+}: {
+  message: UserMsg;
+  subtitles?: SubtitleStatus;
+  /** Only when no answer is showing the transcription already. */
+  showProgress: boolean;
+  subtitleError?: string;
+}) {
   return (
     <div className="flex flex-col items-end gap-4">
-      {message.video && <AttachmentCard video={message.video} />}
+      {message.video && (
+        <AttachmentCard video={message.video} subtitles={subtitles} showProgress={showProgress} error={subtitleError} />
+      )}
       {(message.preset || message.text) && (
         <div className="flex max-w-[85%] flex-col items-end gap-2">
           {message.preset && <PresetChip id={message.preset} />}

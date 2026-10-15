@@ -76,3 +76,9 @@ export type AssistantMessage = {
 };
 
 export type Message = UserMessage | AssistantMessage;
+
+/** Whether a video has subtitles, will have its audio transcribed, or can't be asked about. */
+export type SubtitleAvailability = 'ready' | 'transcribe' | 'off';
+
+/** A video's subtitles as its attachment card shows them; `undefined` while still checking. */
+export type SubtitleStatus = SubtitleAvailability | { progress: AsrProgress } | undefined;
