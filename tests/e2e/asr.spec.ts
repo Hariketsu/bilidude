@@ -112,12 +112,22 @@ test('SiliconFlow: estimates times for text-only results', async ({ context, ext
   await configureAsr(panel, { provider: 'siliconflow', apiKeys: { siliconflow: 'sk-test' } });
 
   await ask(panel, { preset: 'Recap' }, 60_000);
-  expect(calls).toBe(4); // 1-minute chunks
+  expect(calls).toBe(4); // chunks of at most a minute
   const prompt = systemPrompt(requests);
   expect(prompt).toContain('times=\\"approximate');
-  // Each chunk's second sentence starts half-way through it, e.g. 60s + 30s for the second chunk.
-  // Chunks are 59.99s after rounding to whole AAC frames.
-  expect(prompt).toMatch(/\[01:(29|30)\] 第二句/);
+
+  const times = (sentence: string) =>
+    [...prompt.matchAll(new RegExp(`\\[(\\d\\d):(\\d\\d)\\] ${sentence}`, 'g'))].map((m) => Number(m[1]) * 60 + Number(m[2]));
+  const starts = times('第一句');
+  const ends = [...starts.slice(1), 213]; // the video is 3:33
+  expect(starts[0]).toBe(0);
+  for (const [i, start] of starts.entries()) {
+    // Cut in the quietest moment of the last 15 s before the one-minute limit.
+    expect(ends[i]! - start).toBeLessThanOrEqual(60);
+    if (i < starts.length - 1) expect(ends[i]! - start).toBeGreaterThanOrEqual(44);
+    // Each chunk's second sentence starts half-way through it.
+    expect(Math.abs(times('第二句')[i]! - (start + ends[i]!) / 2)).toBeLessThanOrEqual(1);
+  }
 });
 
 test('DashScope: sends AAC as base64 and reads SSE sentences', async ({ context, extensionId }) => {

@@ -3,7 +3,7 @@
 // Box parsing follows BiliScript's asr/adts.ts (MIT): https://github.com/Edmund724/BiliScript
 
 /** One AAC frame holds 1024 samples per channel. */
-const SAMPLES_PER_FRAME = 1024;
+export const SAMPLES_PER_FRAME = 1024;
 const SAMPLE_RATES = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
 
 export interface AacTrack {
@@ -138,15 +138,14 @@ export function extractAac(mp4: Uint8Array): AacTrack {
   return { sampleRate: SAMPLE_RATES[freqIdx] ?? 48000, frames };
 }
 
-export function splitAac(track: AacTrack, chunkSeconds: number): AacChunk[] {
+/** Splits the track at the given frame indices (see `planCuts`). */
+export function splitAac(track: AacTrack, cuts: number[]): AacChunk[] {
   const frameSeconds = SAMPLES_PER_FRAME / track.sampleRate;
-  const perChunk = Math.max(1, Math.floor(chunkSeconds / frameSeconds));
-  const chunks: AacChunk[] = [];
-  for (let i = 0; i < track.frames.length; i += perChunk) {
-    const frames = track.frames.slice(i, i + perChunk);
-    chunks.push({ index: chunks.length, startSec: i * frameSeconds, durationSec: frames.length * frameSeconds, frames });
-  }
-  return chunks;
+  const bounds = [0, ...cuts, track.frames.length];
+  return bounds.slice(0, -1).map((start, index) => {
+    const frames = track.frames.slice(start, bounds[index + 1]);
+    return { index, startSec: start * frameSeconds, durationSec: frames.length * frameSeconds, frames };
+  });
 }
 
 export function concatFrames(frames: Uint8Array[]): Uint8Array {

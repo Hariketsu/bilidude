@@ -3,6 +3,7 @@ import { deleteAsrChunks, loadAsrChunk, storeAsrChunk, storeTranscript } from '.
 import { mergeLines, parseAuthorChapters, rememberTranscript } from '../transcript';
 import type { Transcript, VideoRef } from '../types';
 import { splitAac } from './aac';
+import { planCuts } from './silence';
 import { downloadAudio } from './audio';
 import { transcribeChunk, type AsrConfig, type ChunkTranscript } from './providers';
 import { t } from '../i18n';
@@ -50,19 +51,22 @@ async function run(video: VideoRef, config: AsrConfig, report: (p: AsrProgress) 
   const track = await downloadAudio(video, new AbortController().signal, (loaded, total) =>
     report({ stage: 'downloading', fraction: total ? loaded / total : 0 }),
   );
-  const chunks = splitAac(track, config.chunkSeconds);
+  const chunks = splitAac(track, await planCuts(track, config.chunkSeconds));
   const results: ChunkTranscript[] = new Array(chunks.length);
   let done = 0;
   report({ stage: 'transcribing', done, total: chunks.length });
 
-  const cacheKey = (index: number) =>
-    [video.bvid, video.cid, config.provider.id, config.model, config.chunkSeconds, index].join(':');
+  // Chunk bounds follow the audio's pauses, so the key names the span rather than an index.
+  const cacheKey = (chunk: (typeof chunks)[number]) => {
+    const span = [chunk.startSec, chunk.durationSec].map((s) => Math.round(s * 1000));
+    return [video.bvid, video.cid, config.provider.id, config.model, ...span].join(':');
+  };
 
   let next = 0;
   const worker = async () => {
     while (next < chunks.length) {
       const chunk = chunks[next++]!;
-      const key = cacheKey(chunk.index);
+      const key = cacheKey(chunk);
       let result = await loadAsrChunk(key);
       for (let attempt = 0; !result; attempt++) {
         try {
