@@ -49,7 +49,12 @@ BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选
 
 点工具栏上的图标打开侧边栏，第一次使用时选一个模型服务商并填入 API Key。内置 DeepSeek、OpenAI、Anthropic、Google Gemini 和 OpenRouter，也可以接任何 OpenAI 兼容接口，比如本地的 LM Studio、Strata 或 Ollama。
 
-每个服务商都可以改 Base URL，接同一协议的代理或网关：DeepSeek 和 OpenRouter 用 OpenAI Chat Completions，Anthropic 用 Messages API，Gemini 用 Gemini API。OpenAI 改了 Base URL 后可以在 Responses 和 Chat Completions 之间选。列表里没有的模型，选“其他…”手动填写模型 ID。
+每个服务商都可以改 Base URL，接同一协议的代理或网关：
+
+- DeepSeek 和 OpenRouter 用 OpenAI Chat Completions。
+- Anthropic 用 Messages API，Gemini 用 Gemini API。
+- OpenAI 改了 Base URL 后可以在 Responses 和 Chat Completions 之间选。
+- 列表里没有的模型，选“其他…”手动填写模型 ID。
 
 B 站只给登录用户提供 AI 字幕，所以请在同一个浏览器里登录 bilibili.com。
 

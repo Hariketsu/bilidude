@@ -49,7 +49,12 @@ It needs Chrome or another Chromium browser with side panel support. Firefox and
 
 Click the toolbar icon to open the side panel. The first time, pick a model provider and paste your API key. DeepSeek, OpenAI, Anthropic, Google Gemini and OpenRouter are built in, and any OpenAI-compatible endpoint works too, such as a local LM Studio, Strata or Ollama.
 
-Every provider's base URL can be changed, to reach a proxy or gateway that speaks the same protocol: DeepSeek and OpenRouter use OpenAI Chat Completions, Anthropic the Messages API, Gemini the Gemini API. With a custom base URL, OpenAI can use either Responses or Chat Completions. For a model that isn't listed, choose "Other…" and type its model ID.
+Every provider's base URL can be changed, to reach a proxy or gateway that speaks the same protocol:
+
+- DeepSeek and OpenRouter use OpenAI Chat Completions.
+- Anthropic uses the Messages API, Gemini the Gemini API.
+- With a custom base URL, OpenAI can use either Responses or Chat Completions.
+- For a model that isn't listed, choose "Other…" and type its model ID.
 
 Bilibili only serves its AI subtitles to logged-in users, so log in to bilibili.com in the same browser.
 
