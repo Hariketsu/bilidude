@@ -98,6 +98,15 @@ bilibili.com 的普通视频（`/video/BV…`、`/video/av…`，包括分 P）�
 
 本项目与哔哩哔哩无关。
 
+## Star History
+
+<a href="https://star-history.com/#Hariketsu/bilidude&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Hariketsu/bilidude&type=Date&theme=dark">
+    <img alt="Star History" src="https://api.star-history.com/svg?repos=Hariketsu/bilidude&type=Date">
+  </picture>
+</a>
+
 ## 许可证
 
 [GPL-3.0](LICENSE)。改编自 MIT 项目的代码见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

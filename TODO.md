@@ -8,7 +8,7 @@ MVP 之后的规划。MVP 范围见设计文档。
 
 ## README
 
-- [ ] 加上 Star History 图（仓库公开后）。
+- [x] 加上 Star History 图（仓库公开后）。
 
 ## 导出
 
