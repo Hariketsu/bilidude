@@ -17,12 +17,12 @@
 </p>
 
 <p align="center">
+  <img alt="DeepSeek" src="https://img.shields.io/badge/DeepSeek-4D6BFE?logo=deepseek&logoColor=white">
+  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991">
   <img alt="Anthropic" src="https://img.shields.io/badge/Anthropic-191919?logo=anthropic&logoColor=white">
   <img alt="Gemini" src="https://img.shields.io/badge/Gemini-8E75B2?logo=googlegemini&logoColor=white">
-  <img alt="DeepSeek" src="https://img.shields.io/badge/DeepSeek-4D6BFE?logo=deepseek&logoColor=white">
   <img alt="OpenRouter" src="https://img.shields.io/badge/OpenRouter-6566F1?logo=openrouter&logoColor=white">
   <img alt="Ollama" src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white">
-  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991">
 </p>
 
 <p align="center">
@@ -32,8 +32,6 @@
 ![BiliDude screenshot](docs/images/screenshot.jpg)
 
 BiliDude is a Chrome extension. It reads the subtitles of the video you are watching, hands them to the model you choose, and answers questions about the video. Ask for a recap, a table of contents or the top quotes in one click, or just ask. Click a timestamp in the answer and the video jumps there.
-
-Every timestamp and quote is checked against the subtitles. Times that don't exist in the subtitles are removed, and "quotes" that can't be found there are not marked as the speaker's words.
 
 Videos without subtitles can be transcribed from their audio first.
 
@@ -49,7 +47,9 @@ It needs Chrome or another Chromium browser with side panel support. Firefox and
 
 ## Usage
 
-Click the toolbar icon to open the side panel. The first time, pick a model provider and paste your API key. OpenAI, Anthropic, Google Gemini, OpenRouter and DeepSeek are built in, and any OpenAI-compatible endpoint works too, such as a local Ollama or LM Studio.
+Click the toolbar icon to open the side panel. The first time, pick a model provider and paste your API key. DeepSeek, OpenAI, Anthropic, Google Gemini and OpenRouter are built in, and any OpenAI-compatible endpoint works too, such as a local LM Studio, Strata or Ollama.
+
+Every provider's base URL can be changed, to reach a proxy or gateway that speaks the same protocol: DeepSeek and OpenRouter use OpenAI Chat Completions, Anthropic the Messages API, Gemini the Gemini API. With a custom base URL, OpenAI can use either Responses or Chat Completions. For a model that isn't listed, choose "Other…" and type its model ID.
 
 Bilibili only serves its AI subtitles to logged-in users, so log in to bilibili.com in the same browser.
 
@@ -92,7 +92,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) (in Chinese).
 - [BiliScript](https://github.com/Edmund724/BiliScript): reference for the audio pipeline and AAC extraction.
 - [bcut-asr](https://github.com/SocialSisterYi/bcut-asr): reference for Bcut speech recognition.
 - [Bilitato](https://github.com/erikzhuang55/Bilitato): reference for subtitle and transcription handling.
-- [pi-ai](https://www.npmjs.com/package/@earendil-works/pi-ai) and [WXT](https://wxt.dev).
+- [pi-ai](https://www.npmjs.com/package/@earendil-works/pi-ai) and [WXT](https://wxt.dev): LLM and framework.
 
 ## Disclaimer
 

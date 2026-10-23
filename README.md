@@ -17,12 +17,12 @@
 </p>
 
 <p align="center">
+  <img alt="DeepSeek" src="https://img.shields.io/badge/DeepSeek-4D6BFE?logo=deepseek&logoColor=white">
+  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991">
   <img alt="Anthropic" src="https://img.shields.io/badge/Anthropic-191919?logo=anthropic&logoColor=white">
   <img alt="Gemini" src="https://img.shields.io/badge/Gemini-8E75B2?logo=googlegemini&logoColor=white">
-  <img alt="DeepSeek" src="https://img.shields.io/badge/DeepSeek-4D6BFE?logo=deepseek&logoColor=white">
   <img alt="OpenRouter" src="https://img.shields.io/badge/OpenRouter-6566F1?logo=openrouter&logoColor=white">
   <img alt="Ollama" src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white">
-  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991">
 </p>
 
 <p align="center">
@@ -32,8 +32,6 @@
 ![BiliDude 截图](docs/images/screenshot.jpg)
 
 BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选的大模型，然后回答关于这个视频的问题。可以一键要总结、目录或金句，也可以直接问。回答里的时间戳点一下，视频就跳过去。
-
-时间戳和引文都会和字幕逐条核对。字幕里不存在的时间点会被删掉，找不到原文的“引用”不会被标成原话。
 
 没有字幕的视频可以先转写音频。
 
@@ -49,7 +47,9 @@ BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选
 
 ## 使用
 
-点工具栏上的图标打开侧边栏，第一次使用时选一个模型服务商并填入 API Key。内置 OpenAI、Anthropic、Google Gemini、OpenRouter 和 DeepSeek，也可以接任何 OpenAI 兼容接口，比如本地的 Ollama 或 LM Studio。
+点工具栏上的图标打开侧边栏，第一次使用时选一个模型服务商并填入 API Key。内置 DeepSeek、OpenAI、Anthropic、Google Gemini 和 OpenRouter，也可以接任何 OpenAI 兼容接口，比如本地的 LM Studio、Strata 或 Ollama。
+
+每个服务商都可以改 Base URL，接同一协议的代理或网关：DeepSeek 和 OpenRouter 用 OpenAI Chat Completions，Anthropic 用 Messages API，Gemini 用 Gemini API。OpenAI 改了 Base URL 后可以在 Responses 和 Chat Completions 之间选。列表里没有的模型，选“其他…”手动填写模型 ID。
 
 B 站只给登录用户提供 AI 字幕，所以请在同一个浏览器里登录 bilibili.com。
 
@@ -89,10 +89,10 @@ bilibili.com 的普通视频（`/video/BV…`、`/video/av…`，包括分 P）�
 
 ## 致谢
 
-- [BiliScript](https://github.com/Edmund724/BiliScript)：音频处理流程与AAC提取参考。
+- [BiliScript](https://github.com/Edmund724/BiliScript)：音频处理流程与 AAC 提取参考。
 - [bcut-asr](https://github.com/SocialSisterYi/bcut-asr)：必剪语音识别参考。
 - [Bilitato](https://github.com/erikzhuang55/Bilitato)：字幕和转写处理参考。
-- [pi-ai](https://www.npmjs.com/package/@earendil-works/pi-ai) 和 [WXT](https://wxt.dev)。
+- [pi-ai](https://www.npmjs.com/package/@earendil-works/pi-ai) 和 [WXT](https://wxt.dev)：LLM 与框架。
 
 ## 声明
 
