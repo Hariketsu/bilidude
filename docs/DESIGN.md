@@ -18,7 +18,7 @@
 - 首次引导（BYOK 配置）、设置（模型、输出语言、ASR、主题、会话策略）
 - 白天 / 夜间模式
 
-**非目标（MVP）**：bilibili.tv、番剧 / 课程页、下载、导出、多视频会话、长视频 Map-Reduce（见 `TODO.md`）。
+**非目标（MVP）**：bilibili.tv、番剧 / 课程页、下载、导出、多视频会话、长视频 Map-Reduce。
 
 ## 2. 交互设计
 
@@ -160,7 +160,7 @@ lib/
 - **自定义 baseUrl**：每个 provider 都可填 baseUrl（`llm.baseUrls`），留空用官方地址。pi-ai 各 API 实现都按 `model.baseUrl` 发请求，所以只替换目录模型的 `baseUrl`，协议不变：OpenAI 走 Responses API，DeepSeek / OpenRouter 走 Chat Completions，Anthropic 走 Messages，Google 走 Generative Language（baseUrl 含版本路径）。OpenAI 填了 baseUrl 后可选协议（`llm.openaiApi`：Responses / Chat Completions），因为不少 OpenAI 兼容中转只有 Chat Completions；pi-ai 的 OpenAI provider 只实现 Responses，所以 Chat Completions 直接调 `openai-completions` API，与自定义端点相同。适合同协议的代理 / 网关；AWS Bedrock 原生接口要 SigV4 签名、路径也不同，不能直接填。0.1.0 的 `customBaseUrl` 读取时迁移为 `baseUrls.custom`。
 - **Host 权限**：内置 provider 的域名写进 `host_permissions`；自定义 baseUrl 走 `optional_host_permissions` 运行时申请。
 - **Thinking**：用户选思考强度，默认关闭（实测 DeepSeek V4.1 Flash 做 Recap：关闭约 2 秒出完，low / high 都要先思考约 8 秒，总结类任务质量差别不大）。只存一个偏好值 `llm.thinking`，输入框旁的按钮直接改它；档位列表来自 pi-ai `getSupportedThinkingLevels`，请求时用 `clampThinkingLevel` 对齐到当前模型支持的档位（如 V4 Pro 没有 low，会提到 high）。不能推理或不能关闭思考的模型不显示该按钮。`thinking_*` 事件 → 可展开的 “Thought for N seconds”。
-- **上下文预算**：system prompt 的 token 估算（CJK 1 字 ≈ 1 token，其余 4 字符 ≈ 1 token）+ 16k 余量超过 `model.contextWindow` 时只提示「视频过长，当前模型放不下」，长视频方案见 `TODO.md`。
+- **上下文预算**：system prompt 的 token 估算（CJK 1 字 ≈ 1 token，其余 4 字符 ≈ 1 token）+ 16k 余量超过 `model.contextWindow` 时只提示「视频过长，当前模型放不下」。不做分段处理：1M 上下文的模型已经普及，换模型即可。
 - Anthropic 浏览器直连所需的 `anthropic-dangerous-direct-browser-access` 头由 pi-ai 自动携带（已确认）。
 - **历史**：每轮回答保存 pi-ai 返回的原始 `AssistantMessage`，追问时原样回放；失败的回答及其提问不进历史。
 
