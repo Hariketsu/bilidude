@@ -7,6 +7,9 @@ import { Group, Select, TextInput } from './SettingsUi';
 
 type LlmSettings = Settings['llm'];
 
+/** Select value that reveals a field for a model id missing from the catalog. */
+const OTHER_MODEL = '\0other';
+
 /** Provider, endpoint, key, model and thinking level; every change is reported at once. */
 export function ModelSettings({
   title,
@@ -24,8 +27,13 @@ export function ModelSettings({
   const provider = value.provider;
   const isCustom = provider === CUSTOM_PROVIDER;
   const models = listModels(provider);
-  const model = models.find((m) => m.id === value.models[provider]);
+  const modelId = value.models[provider] ?? '';
+  const model = models.find((m) => m.id === modelId);
   const levels = model ? thinkingLevels(model) : [];
+  const baseUrl = value.baseUrls[provider] ?? '';
+  // Picking "Other" empties the id, so remember the choice until a listed model is picked.
+  const [typingId, setTypingId] = useState(false);
+  const otherModel = isCustom || typingId || (!!modelId && !model);
   const set = (patch: Partial<LlmSettings>) => onChange({ ...value, ...patch });
   const setForProvider = (field: 'apiKeys' | 'models' | 'baseUrls', text: string) => set({ [field]: { ...value[field], [provider]: text } });
 
@@ -35,15 +43,29 @@ export function ModelSettings({
         label={t('settings.model.provider')}
         value={provider}
         options={PROVIDERS.map((p) => [p.id, p.id === CUSTOM_PROVIDER ? t('settings.model.customProvider') : p.name] as const)}
-        onChange={(id) => set({ provider: id })}
+        onChange={(id) => {
+          setTypingId(false);
+          set({ provider: id });
+        }}
       />
       <TextInput
         label={t('settings.model.baseUrl')}
         placeholder={isCustom ? 'https://api.example.com/v1' : defaultBaseUrl(provider)}
-        value={value.baseUrls[provider] ?? ''}
+        value={baseUrl}
         onChange={(url) => setForProvider('baseUrls', url)}
       />
-      {hostAccess && <HostAccess baseUrl={value.baseUrls[provider] ?? ''} />}
+      {hostAccess && <HostAccess baseUrl={baseUrl} />}
+      {provider === 'openai' && baseUrl.trim() && (
+        <Select
+          label={t('settings.model.api')}
+          value={value.openaiApi}
+          options={[
+            ['responses', 'Responses'],
+            ['completions', 'Chat Completions'],
+          ]}
+          onChange={(openaiApi) => set({ openaiApi })}
+        />
+      )}
       <TextInput
         label={t('settings.model.apiKey')}
         secret
@@ -51,19 +73,23 @@ export function ModelSettings({
         value={value.apiKeys[provider] ?? ''}
         onChange={(key) => setForProvider('apiKeys', key)}
       />
-      {isCustom ? (
-        <TextInput
-          label={t('settings.model.model')}
-          placeholder={t('settings.model.modelId')}
-          value={value.models[provider] ?? ''}
-          onChange={(id) => setForProvider('models', id)}
-        />
-      ) : (
+      {!isCustom && (
         <Select
           label={t('settings.model.model')}
-          value={value.models[provider] ?? ''}
+          value={otherModel ? OTHER_MODEL : modelId}
           placeholder={t('settings.model.chooseModel')}
-          options={models.map((m) => [m.id, m.name] as const)}
+          options={[...models.map((m) => [m.id, m.name] as const), [OTHER_MODEL, t('settings.model.otherModel')] as const]}
+          onChange={(id) => {
+            setTypingId(id === OTHER_MODEL);
+            setForProvider('models', id === OTHER_MODEL ? '' : id);
+          }}
+        />
+      )}
+      {otherModel && (
+        <TextInput
+          label={t(isCustom ? 'settings.model.model' : 'settings.model.modelId')}
+          placeholder={t(isCustom ? 'settings.model.modelId' : 'settings.model.required')}
+          value={modelId}
           onChange={(id) => setForProvider('models', id)}
         />
       )}

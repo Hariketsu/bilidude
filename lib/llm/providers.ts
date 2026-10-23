@@ -11,15 +11,15 @@ import type { Settings } from '../settings';
 
 export const CUSTOM_PROVIDER = 'custom';
 
-/** Providers offered in settings. Their API hosts are listed in `host_permissions`. */
+/** Providers offered in settings, with the API a model id outside pi-ai's catalog uses. Their API hosts are listed in `host_permissions`. */
 export const PROVIDERS = [
-  { id: 'deepseek', name: 'DeepSeek' },
-  { id: 'openai', name: 'OpenAI' },
-  { id: 'anthropic', name: 'Anthropic' },
-  { id: 'google', name: 'Google Gemini' },
-  { id: 'openrouter', name: 'OpenRouter' },
-  { id: CUSTOM_PROVIDER, name: 'Custom (OpenAI-compatible)' },
-] as const;
+  { id: 'deepseek', name: 'DeepSeek', api: 'openai-completions' },
+  { id: 'openai', name: 'OpenAI', api: 'openai-responses' },
+  { id: 'anthropic', name: 'Anthropic', api: 'anthropic-messages' },
+  { id: 'google', name: 'Google Gemini', api: 'google-generative-ai' },
+  { id: 'openrouter', name: 'OpenRouter', api: 'openai-completions' },
+  { id: CUSTOM_PROVIDER, name: 'Custom (OpenAI-compatible)', api: 'openai-completions' },
+] as const satisfies readonly { id: string; name: string; api: Api }[];
 
 const models = createModels();
 for (const provider of [deepseekProvider, openaiProvider, anthropicProvider, googleProvider, openrouterProvider]) {
@@ -45,36 +45,38 @@ export function defaultBaseUrl(providerId: string): string | undefined {
 
 /** The model the user configured, or undefined if setup is incomplete. */
 export function resolveModel(llm: Settings['llm']): ResolvedModel | undefined {
-  const apiKey = llm.apiKeys[llm.provider]?.trim();
-  const modelId = llm.models[llm.provider]?.trim();
-  if (!apiKey || !modelId) return undefined;
-  const baseUrl = llm.baseUrls[llm.provider]?.trim().replace(/\/+$/, '');
+  const { provider } = llm;
+  const apiKey = llm.apiKeys[provider]?.trim();
+  const modelId = llm.models[provider]?.trim();
+  const customUrl = llm.baseUrls[provider]?.trim().replace(/\/+$/, '');
+  const baseUrl = customUrl || defaultBaseUrl(provider);
+  if (!apiKey || !modelId || !baseUrl) return undefined;
 
-  if (llm.provider === CUSTOM_PROVIDER) {
-    if (!baseUrl) return undefined;
-    return {
-      apiKey,
-      model: {
-        id: modelId,
-        name: modelId,
-        api: 'openai-completions',
-        provider: CUSTOM_PROVIDER,
-        baseUrl,
-        reasoning: false,
-        input: ['text'],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        // Unknown for arbitrary endpoints; a common lower bound for current models.
-        contextWindow: 128_000,
-        maxTokens: 8_192,
-        // Many self-hosted servers reject the `developer` role and `reasoning_effort`.
-        compat: { supportsDeveloperRole: false, supportsReasoningEffort: false },
-      } satisfies Model<'openai-completions'>,
-    };
-  }
-
-  const model = models.getModel(llm.provider, modelId);
   // Every pi-ai API sends requests to `model.baseUrl`, so a proxy speaking the provider's protocol can stand in.
-  return model && { model: baseUrl ? { ...model, baseUrl } : model, apiKey };
+  const listed = models.getModel(provider, modelId);
+  let model = listed ? { ...listed, baseUrl } : unlistedModel(provider, modelId, baseUrl);
+  // Many OpenAI-compatible proxies only offer Chat Completions.
+  if (provider === 'openai' && customUrl && llm.openaiApi === 'completions') model = { ...model, api: 'openai-completions' };
+  return { model, apiKey };
+}
+
+/** A model id typed by the user; its limits and abilities are unknown. */
+function unlistedModel(provider: string, id: string, baseUrl: string): Model<Api> {
+  return {
+    id,
+    name: id,
+    api: PROVIDERS.find((p) => p.id === provider)?.api ?? 'openai-completions',
+    provider,
+    baseUrl,
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    // A common lower bound for current models.
+    contextWindow: 128_000,
+    maxTokens: 8_192,
+    // Many self-hosted servers reject the `developer` role and `reasoning_effort`.
+    ...(provider === CUSTOM_PROVIDER && { compat: { supportsDeveloperRole: false, supportsReasoningEffort: false } }),
+  };
 }
 
 /** Thinking levels the model offers, or none if it can't reason (or can't turn it off). */
@@ -97,7 +99,8 @@ export function reasoningOption(model: Model<Api>, preference: ModelThinkingLeve
 type StreamArgs = Parameters<typeof models.streamSimple>;
 
 export function streamChat(model: Model<Api>, context: StreamArgs[1], options: StreamArgs[2]) {
-  if (model.provider === CUSTOM_PROVIDER) {
+  // pi-ai's OpenAI provider only implements Responses, so Chat Completions go to that API directly.
+  if (model.provider === CUSTOM_PROVIDER || (model.provider === 'openai' && model.api === 'openai-completions')) {
     return customApi.streamSimple(model, normalizeContext(context), options);
   }
   return models.streamSimple(model, context, options);

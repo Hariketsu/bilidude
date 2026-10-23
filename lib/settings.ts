@@ -16,6 +16,8 @@ export interface Settings {
     apiKeys: Record<string, string>;
     /** Base URL per provider; required for `custom`, optional for built-ins (empty uses the provider's own). */
     baseUrls: Record<string, string>;
+    /** Protocol for OpenAI when its base URL is set; the official endpoint always uses Responses. */
+    openaiApi: 'responses' | 'completions';
     /** Preferred reasoning effort; each request clamps it to what the model supports. */
     thinking: ModelThinkingLevel;
   };
@@ -38,7 +40,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   // Thinking off: recaps come back in seconds instead of after a long reasoning pass.
-  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, thinking: 'off' },
+  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, openaiApi: 'responses', thinking: 'off' },
   uiLanguage: 'auto',
   outputLanguage: 'auto',
   theme: 'system',
