@@ -13,16 +13,16 @@ export const CUSTOM_PROVIDER = 'custom';
 
 /** Providers offered in settings. Their API hosts are listed in `host_permissions`. */
 export const PROVIDERS = [
+  { id: 'deepseek', name: 'DeepSeek' },
   { id: 'openai', name: 'OpenAI' },
   { id: 'anthropic', name: 'Anthropic' },
   { id: 'google', name: 'Google Gemini' },
   { id: 'openrouter', name: 'OpenRouter' },
-  { id: 'deepseek', name: 'DeepSeek' },
   { id: CUSTOM_PROVIDER, name: 'Custom (OpenAI-compatible)' },
 ] as const;
 
 const models = createModels();
-for (const provider of [openaiProvider, anthropicProvider, googleProvider, openrouterProvider, deepseekProvider]) {
+for (const provider of [deepseekProvider, openaiProvider, anthropicProvider, googleProvider, openrouterProvider]) {
   models.setProvider(provider());
 }
 
@@ -38,14 +38,19 @@ export interface ResolvedModel {
   apiKey: string;
 }
 
+/** A built-in provider's own endpoint, used when no base URL is set. */
+export function defaultBaseUrl(providerId: string): string | undefined {
+  return models.getProvider(providerId)?.baseUrl;
+}
+
 /** The model the user configured, or undefined if setup is incomplete. */
 export function resolveModel(llm: Settings['llm']): ResolvedModel | undefined {
   const apiKey = llm.apiKeys[llm.provider]?.trim();
   const modelId = llm.models[llm.provider]?.trim();
   if (!apiKey || !modelId) return undefined;
+  const baseUrl = llm.baseUrls[llm.provider]?.trim().replace(/\/+$/, '');
 
   if (llm.provider === CUSTOM_PROVIDER) {
-    const baseUrl = llm.customBaseUrl.trim().replace(/\/+$/, '');
     if (!baseUrl) return undefined;
     return {
       apiKey,
@@ -68,7 +73,8 @@ export function resolveModel(llm: Settings['llm']): ResolvedModel | undefined {
   }
 
   const model = models.getModel(llm.provider, modelId);
-  return model && { model, apiKey };
+  // Every pi-ai API sends requests to `model.baseUrl`, so a proxy speaking the provider's protocol can stand in.
+  return model && { model: baseUrl ? { ...model, baseUrl } : model, apiKey };
 }
 
 /** Thinking levels the model offers, or none if it can't reason (or can't turn it off). */

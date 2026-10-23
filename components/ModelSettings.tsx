@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CUSTOM_PROVIDER, effectiveThinking, listModels, PROVIDERS, thinkingLevels } from '@/lib/llm/providers';
+import { CUSTOM_PROVIDER, defaultBaseUrl, effectiveThinking, listModels, PROVIDERS, thinkingLevels } from '@/lib/llm/providers';
 import type { Settings } from '@/lib/settings';
 import { HostAccess, originOf } from './HostAccess';
 import { Group, Select, TextInput } from './SettingsUi';
@@ -17,7 +17,7 @@ export function ModelSettings({
   title?: string;
   value: LlmSettings;
   onChange: (llm: LlmSettings) => void;
-  /** Offer the custom endpoint's permission inline (the setup form asks on its own button instead). */
+  /** Offer a custom base URL's permission inline (the setup form asks on its own button instead). */
   hostAccess?: boolean;
 }) {
   const { t } = useTranslation();
@@ -27,7 +27,7 @@ export function ModelSettings({
   const model = models.find((m) => m.id === value.models[provider]);
   const levels = model ? thinkingLevels(model) : [];
   const set = (patch: Partial<LlmSettings>) => onChange({ ...value, ...patch });
-  const setForProvider = (field: 'apiKeys' | 'models', text: string) => set({ [field]: { ...value[field], [provider]: text } });
+  const setForProvider = (field: 'apiKeys' | 'models' | 'baseUrls', text: string) => set({ [field]: { ...value[field], [provider]: text } });
 
   return (
     <Group title={title} footer={t('settings.model.keyNote')}>
@@ -37,15 +37,13 @@ export function ModelSettings({
         options={PROVIDERS.map((p) => [p.id, p.id === CUSTOM_PROVIDER ? t('settings.model.customProvider') : p.name] as const)}
         onChange={(id) => set({ provider: id })}
       />
-      {isCustom && (
-        <TextInput
-          label={t('settings.model.baseUrl')}
-          placeholder="https://api.example.com/v1"
-          value={value.customBaseUrl}
-          onChange={(customBaseUrl) => set({ customBaseUrl })}
-        />
-      )}
-      {isCustom && hostAccess && <HostAccess baseUrl={value.customBaseUrl} />}
+      <TextInput
+        label={t('settings.model.baseUrl')}
+        placeholder={isCustom ? 'https://api.example.com/v1' : defaultBaseUrl(provider)}
+        value={value.baseUrls[provider] ?? ''}
+        onChange={(url) => setForProvider('baseUrls', url)}
+      />
+      {hostAccess && <HostAccess baseUrl={value.baseUrls[provider] ?? ''} />}
       <TextInput
         label={t('settings.model.apiKey')}
         secret
@@ -81,18 +79,20 @@ export function ModelSettings({
   );
 }
 
-/** First-run setup: the model card plus a button that saves it (and asks for a custom endpoint's host). */
+/** First-run setup: the model card plus a button that saves it (and asks for a custom base URL's host). */
 export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm: LlmSettings) => Promise<void> }) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState<string>();
-  const isCustom = draft.provider === CUSTOM_PROVIDER;
+  const baseUrl = draft.baseUrls[draft.provider]?.trim() ?? '';
   const complete =
-    !!draft.apiKeys[draft.provider]?.trim() && !!draft.models[draft.provider]?.trim() && (!isCustom || !!draft.customBaseUrl.trim());
+    !!draft.apiKeys[draft.provider]?.trim() &&
+    !!draft.models[draft.provider]?.trim() &&
+    (draft.provider !== CUSTOM_PROVIDER || !!baseUrl);
 
   const connect = async () => {
-    if (isCustom) {
-      const origin = originOf(draft.customBaseUrl);
+    if (baseUrl) {
+      const origin = originOf(baseUrl);
       if (!origin) {
         setError(t('settings.host.invalidUrl'));
         return;

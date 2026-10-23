@@ -156,7 +156,8 @@ lib/
 
 - `@earendil-works/pi-ai`，按 provider 子路径导入以控制体积；`models.stream()` 流式，`AbortController` 支持停止。
 - **BYOK**：Key 按 provider 存 `chrome.storage.local`（不进 sync），每次请求显式传 `apiKey`，不用 pi-ai 的 `CredentialStore`。
-- **Provider 列表**：MVP 内置 OpenAI、Anthropic、Google、OpenRouter、DeepSeek（`createModels` 只注册这几个），加「自定义 OpenAI 兼容端点」（直接调 `openai-completions` API 实现，上下文窗口按 128k 估）。模型下拉用 pi-ai 的模型目录，不预设默认模型（目录按字母排序，模型 id 也会过时）。
+- **Provider 列表**：内置 DeepSeek（默认）、OpenAI、Anthropic、Google、OpenRouter（`createModels` 只注册这几个），加「自定义 OpenAI 兼容端点」（直接调 `openai-completions` API 实现，上下文窗口按 128k 估）。模型下拉用 pi-ai 的模型目录，不预设默认模型（目录按字母排序，模型 id 也会过时）。
+- **自定义 baseUrl**：每个 provider 都可填 baseUrl（`llm.baseUrls`），留空用官方地址。pi-ai 各 API 实现都按 `model.baseUrl` 发请求，所以只替换目录模型的 `baseUrl`，协议不变：OpenAI 走 Responses API，DeepSeek / OpenRouter 走 Chat Completions，Anthropic 走 Messages，Google 走 Generative Language（baseUrl 含版本路径）。适合同协议的代理 / 网关；AWS Bedrock 原生接口要 SigV4 签名、路径也不同，不能直接填。0.1.0 的 `customBaseUrl` 读取时迁移为 `baseUrls.custom`。
 - **Host 权限**：内置 provider 的域名写进 `host_permissions`；自定义 baseUrl 走 `optional_host_permissions` 运行时申请。
 - **Thinking**：用户选思考强度，默认关闭（实测 DeepSeek V4.1 Flash 做 Recap：关闭约 2 秒出完，low / high 都要先思考约 8 秒，总结类任务质量差别不大）。只存一个偏好值 `llm.thinking`，输入框旁的按钮直接改它；档位列表来自 pi-ai `getSupportedThinkingLevels`，请求时用 `clampThinkingLevel` 对齐到当前模型支持的档位（如 V4 Pro 没有 low，会提到 high）。不能推理或不能关闭思考的模型不显示该按钮。`thinking_*` 事件 → 可展开的 “Thought for N seconds”。
 - **上下文预算**：system prompt 的 token 估算（CJK 1 字 ≈ 1 token，其余 4 字符 ≈ 1 token）+ 16k 余量超过 `model.contextWindow` 时只提示「视频过长，当前模型放不下」，长视频方案见 `TODO.md`。
@@ -219,14 +220,14 @@ Transcript { key: `${bvid}:${cid}`, source: 'cc'|'ai'|'asr', lang,
 
 单页覆盖在面板上（不用 options 页），iOS 式分组卡片：每组一张圆角卡片，一行一项，标签在左、控件在右。所有改动立即保存，没有 Save 按钮（面板持有一份本地副本，输入不必等 storage 回传）。
 
-- **模型**：provider、自定义 baseUrl、API Key、模型、思考强度（仅支持推理的模型）；卡片下注明 Key 只存在本地
+- **模型**：provider、baseUrl（内置 provider 可选，占位符显示官方地址）、API Key、模型、思考强度（仅支持推理的模型）；卡片下注明 Key 只存在本地
 - **语音转写**：启用开关；启用后显示服务、各服务特有项（baseUrl / 地域 / 工作空间）、Key、模型、开始时机（首次提问时 / 面板打开时）；配置不完整时卡内提示
 - **通用**：界面语言、回答语言、打开视频时（新会话 / 续上次会话）、主题（跟随系统 / 白天 / 夜间）、时间戳链接到视频（复制与导出）
 - **存储**：字幕缓存的清理方式与当前占用、清除按钮（见下）
 
 **字幕缓存清理**：实测字幕按存储格式约 ≤1 KB/分钟（口播密集的 47 分钟视频 46 KB），一小时视频约 60 KB；增长主要来自会话（开思考时一条回答 20–30 KB）。转写的中间分片在整份字幕存好后立即删除。清理方式由用户选：按时间（7 / 30 / 90 天未用，默认 30 天）、按大小（50 / 200 / 500 MB，超出后先删最久未用的）、从不。「最久未用」看 `usedAt`（每次读取更新）。打开面板时最多每天执行一次，改选项时立即执行。历史会话引用的视频字幕永远保留：引用校验依赖它，转写视频重新获取要再转写一遍。
 
-自定义端点的主机权限只能在点击时申请，所以 baseUrl 下方在缺少权限时显示「Allow access」按钮，而不是在保存时申请。
+自定义 baseUrl 的主机权限只能在点击时申请，所以 baseUrl 下方在缺少权限时显示「Allow access」按钮，而不是在保存时申请。
 
 首次使用（无可用模型）时，在对话区内联显示同一张模型卡片和「Connect」按钮（这里先存草稿，点按钮才保存并申请自定义端点权限，避免填到一半就切到对话界面），不跳转设置页。
 

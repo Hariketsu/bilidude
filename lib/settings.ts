@@ -14,7 +14,8 @@ export interface Settings {
     models: Record<string, string>;
     /** API key per provider. */
     apiKeys: Record<string, string>;
-    customBaseUrl: string;
+    /** Base URL per provider; required for `custom`, optional for built-ins (empty uses the provider's own). */
+    baseUrls: Record<string, string>;
     /** Preferred reasoning effort; each request clamps it to what the model supports. */
     thinking: ModelThinkingLevel;
   };
@@ -37,7 +38,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   // Thinking off: recaps come back in seconds instead of after a long reasoning pass.
-  llm: { provider: 'openai', models: {}, apiKeys: {}, customBaseUrl: '', thinking: 'off' },
+  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, thinking: 'off' },
   uiLanguage: 'auto',
   outputLanguage: 'auto',
   theme: 'system',
@@ -52,10 +53,13 @@ const STORAGE_KEY = 'settings';
 
 export async function loadSettings(): Promise<Settings> {
   const stored = (await browser.storage.local.get(STORAGE_KEY))[STORAGE_KEY] as Partial<Settings> | undefined;
+  // 0.1.0 stored only the custom provider's URL, as `customBaseUrl`.
+  const { customBaseUrl, ...llm } = (stored?.llm ?? {}) as Partial<Settings['llm']> & { customBaseUrl?: string };
+  if (customBaseUrl && !llm.baseUrls) llm.baseUrls = { custom: customBaseUrl };
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    llm: { ...DEFAULT_SETTINGS.llm, ...stored?.llm },
+    llm: { ...DEFAULT_SETTINGS.llm, ...llm },
     asr: { ...DEFAULT_SETTINGS.asr, ...stored?.asr },
     cache: { ...DEFAULT_SETTINGS.cache, ...stored?.cache },
   };

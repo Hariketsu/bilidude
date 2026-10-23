@@ -110,7 +110,7 @@ export async function configure(panel: Page, llm: LlmConfig, outputLanguage = 'e
             provider: llm.provider,
             models: { [llm.provider]: llm.model },
             apiKeys: { [llm.provider]: llm.apiKey },
-            customBaseUrl: llm.baseUrl ?? '',
+            baseUrls: { [llm.provider]: llm.baseUrl ?? '' },
           },
           outputLanguage,
           theme: 'system',
