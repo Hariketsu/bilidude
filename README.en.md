@@ -54,7 +54,6 @@ Every provider's base URL can be changed, to reach a proxy or gateway that speak
 - DeepSeek and OpenRouter use OpenAI Chat Completions.
 - Anthropic uses the Messages API, Gemini the Gemini API.
 - With a custom base URL, OpenAI can use either Responses or Chat Completions.
-- A custom (OpenAI-compatible) endpoint can list its models with "Fetch models", which reads `/models`.
 - For a model that isn't listed, choose "Other…" and type its model ID.
 
 Bilibili only serves its AI subtitles to logged-in users, so log in to bilibili.com in the same browser.
