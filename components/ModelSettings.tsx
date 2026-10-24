@@ -11,7 +11,7 @@ import {
   thinkingLevels,
 } from '@/lib/llm/providers';
 import type { Settings } from '@/lib/settings';
-import { HostAccess, originOf } from './HostAccess';
+import { HostAccess, requestHostAccess } from './HostAccess';
 import { Group, Row, Select, TextInput } from './SettingsUi';
 
 type LlmSettings = Settings['llm'];
@@ -47,10 +47,9 @@ export function ModelSettings({
   const [fetchingModels, setFetchingModels] = useState(false);
   const [fetchError, setFetchError] = useState<string>();
   const fetchController = useRef<AbortController | undefined>(undefined);
-  const modelOptions: (readonly [string, string])[] = (isCustom && remoteModels.length > 0
-    ? remoteModels
-    : models
-  ).map((m) => (typeof m === 'string' ? [m, m] as const : [m.id, m.name] as const));
+  const modelOptions = isCustom
+    ? remoteModels.map((id) => [id, id] as const)
+    : models.map((m) => [m.id, m.name] as const);
   const canChooseFromList = !isCustom || modelOptions.length > 0;
   const otherModel = canChooseFromList ? typingId || (!!modelId && !modelOptions.some(([id]) => id === modelId)) : true;
   const set = (patch: Partial<LlmSettings>) => onChange({ ...value, ...patch });
@@ -65,24 +64,18 @@ export function ModelSettings({
   }, [provider, baseUrl]);
 
   const loadModels = async () => {
-    const url = baseUrl.trim();
-    const origin = originOf(url);
-    if (!origin) {
-      setFetchError(t('settings.host.invalidUrl'));
-      return;
-    }
     fetchController.current?.abort();
     const controller = new AbortController();
     fetchController.current = controller;
     setFetchingModels(true);
     setFetchError(undefined);
     try {
-      // Must be the first await: Chrome only grants permissions during the click.
-      if (!(await browser.permissions.request({ origins: [`${origin}/*`] }))) {
-        setFetchError(t('settings.host.needsAccess', { origin }));
+      const accessError = await requestHostAccess(baseUrl);
+      if (accessError) {
+        setFetchError(accessError);
         return;
       }
-      const ids = await fetchModelIds(url, value.apiKeys[provider]?.trim() ?? '', controller.signal);
+      const ids = await fetchModelIds(baseUrl.trim(), value.apiKeys[provider]?.trim() ?? '', controller.signal);
       if (controller.signal.aborted) return;
       if (ids.length === 0) {
         setFetchError(t('settings.model.fetchEmpty'));
@@ -208,17 +201,10 @@ export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm
     (draft.provider !== CUSTOM_PROVIDER || !!baseUrl);
 
   const connect = async () => {
-    if (baseUrl) {
-      const origin = originOf(baseUrl);
-      if (!origin) {
-        setError(t('settings.host.invalidUrl'));
-        return;
-      }
-      // Must be the first await: Chrome only grants permissions during the click.
-      if (!(await browser.permissions.request({ origins: [`${origin}/*`] }))) {
-        setError(t('settings.host.needsAccess', { origin }));
-        return;
-      }
+    const accessError = baseUrl ? await requestHostAccess(baseUrl) : undefined;
+    if (accessError) {
+      setError(accessError);
+      return;
     }
     await onSave(draft);
   };
