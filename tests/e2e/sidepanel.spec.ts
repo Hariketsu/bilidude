@@ -30,6 +30,36 @@ test('setup form connects a model', async ({ context, extensionId }) => {
   await expect(panel.getByRole('button', { name: 'Recap', exact: true })).toBeVisible();
 });
 
+test('fetches models from a custom OpenAI-compatible endpoint', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  await context.route('https://api.deepseek.com/v1/models', (route) =>
+    route.fulfill({ json: { object: 'list', data: [{ id: 'deepseek-v4-flash' }, { id: 'deepseek-chat' }] } }),
+  );
+  const { panel } = await openPanel(context, extensionId);
+  await expect(panel.getByText('Connect a model')).toBeVisible();
+
+  await panel.getByLabel('Provider').selectOption('custom');
+  await panel.getByLabel('Base URL').fill('https://api.deepseek.com/v1');
+  await panel.getByLabel('API key').fill('sk-test');
+  await panel.getByRole('button', { name: 'Fetch models' }).click();
+
+  await expect(panel.getByText('Fetched 2')).toBeVisible();
+  await panel.getByLabel('Model').selectOption('deepseek-v4-flash');
+  await panel.getByRole('button', { name: 'Connect' }).click();
+
+  // Bilibili availability varies by environment; the saved choice is what matters here.
+  await expect(panel.getByText('Connect a model')).toHaveCount(0);
+  const saved = await panel.evaluate(async () => {
+    const chrome = (globalThis as unknown as { chrome: typeof browser }).chrome;
+    const { settings } = (await chrome.storage.local.get('settings')) as {
+      settings: { llm: { provider: string; models: Record<string, string> } };
+    };
+    return settings.llm;
+  });
+  expect(saved.provider).toBe('custom');
+  expect(saved.models.custom).toBe('deepseek-v4-flash');
+});
+
 test('validates timestamps and quotes against the transcript', async ({ context, extensionId }) => {
   await mockSubtitles(context);
   const requests = await mockLlm(
