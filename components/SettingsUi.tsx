@@ -53,7 +53,7 @@ export function Select<T extends string>({
           aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value as T)}
-          className="min-w-0 cursor-pointer appearance-none truncate bg-transparent pr-5 text-right outline-none [text-align-last:right]"
+          className="bd-select min-w-0 cursor-pointer truncate pr-5 text-right outline-none [text-align-last:right]"
         >
           {placeholder && (
             <option value="" disabled>

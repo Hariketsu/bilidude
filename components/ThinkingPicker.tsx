@@ -28,7 +28,7 @@ export function ThinkingPicker({
         aria-label={t('thinking.label')}
         value={value}
         onChange={(e) => onChange(e.target.value as ModelThinkingLevel)}
-        className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+        className="bd-select absolute inset-0 cursor-pointer text-transparent"
       >
         {levels.map((level) => (
           <option key={level} value={level}>

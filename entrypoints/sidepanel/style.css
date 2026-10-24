@@ -60,6 +60,76 @@ body {
   scrollbar-color: var(--bd-scrollbar) transparent;
 }
 
+/*
+ * Customizable select (Chrome 135+): the open list is drawn like the download menu
+ * instead of by the OS, which looks very different on Windows. Older browsers keep
+ * the native list. The closed select stays bare; callers draw their own chevron.
+ */
+@layer components {
+  .bd-select {
+    appearance: base-select;
+    border: none;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+  }
+
+  .bd-select::picker-icon {
+    display: none;
+  }
+
+  .bd-select::picker(select) {
+    appearance: base-select;
+    /* Right edges line up with the select, the list grows leftwards into the panel. */
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block;
+    margin-block: 6px;
+    min-width: 10rem;
+    max-height: 20rem;
+    padding: 6px;
+    border: 1px solid var(--bd-border);
+    border-radius: 1rem;
+    background: var(--bd-surface);
+    color: var(--bd-fg);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  }
+
+  .bd-select option {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .bd-select option:hover,
+  .bd-select option:focus-visible {
+    background: var(--bd-fill-hover);
+    outline: none;
+  }
+
+  .bd-select option:checked {
+    background: transparent;
+    font-weight: 500;
+  }
+
+  .bd-select option:checked:hover,
+  .bd-select option:checked:focus-visible {
+    background: var(--bd-fill-hover);
+  }
+
+  .bd-select option::checkmark {
+    color: var(--bd-accent);
+  }
+
+  /* The "Choose a model" placeholder only labels the closed select. */
+  .bd-select option:disabled {
+    display: none;
+  }
+}
+
 /* "Thinking…" label: a highlight sweeping across muted text. */
 .shimmer-text {
   background: linear-gradient(
