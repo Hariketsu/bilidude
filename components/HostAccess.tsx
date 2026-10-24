@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { t } from '@/lib/i18n';
 import { Hint } from './SettingsUi';
 
 export function originOf(baseUrl: string): string | undefined {
@@ -9,6 +10,17 @@ export function originOf(baseUrl: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Asks for a base URL's host and returns an error message, or undefined once granted.
+ * Call it before any other await: Chrome only grants permissions during the click.
+ */
+export async function requestHostAccess(baseUrl: string): Promise<string | undefined> {
+  const origin = originOf(baseUrl);
+  if (!origin) return t('settings.host.invalidUrl');
+  if (!(await browser.permissions.request({ origins: [`${origin}/*`] }))) return t('settings.host.needsAccess', { origin });
+  return undefined;
 }
 
 /**

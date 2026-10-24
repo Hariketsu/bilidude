@@ -33,6 +33,31 @@ export function listModels(providerId: string): readonly Model<Api>[] {
   return providerId === CUSTOM_PROVIDER ? [] : models.getModels(providerId);
 }
 
+/** The endpoint answered, but not with a usable model list. */
+export class ModelListError extends Error {
+  constructor(readonly status: number) {
+    super(`Model list request failed with HTTP ${status}`);
+    this.name = 'ModelListError';
+  }
+}
+
+/** Model ids from an OpenAI-compatible `GET {baseUrl}/models`. */
+export async function fetchModelIds(baseUrl: string, apiKey: string, signal?: AbortSignal): Promise<string[]> {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/models`, { headers, signal });
+  if (!response.ok) throw new ModelListError(response.status);
+
+  const payload = (await response.json()) as { data?: unknown; models?: unknown };
+  const entries = Array.isArray(payload.data) ? payload.data : Array.isArray(payload.models) ? payload.models : [];
+  const ids = entries.flatMap((entry) => {
+    const id =
+      typeof entry === 'string' ? entry : entry && typeof entry === 'object' && 'id' in entry ? entry.id : undefined;
+    return typeof id === 'string' && id.trim() ? [id.trim()] : [];
+  });
+  return [...new Set(ids)];
+}
+
 export interface ResolvedModel {
   model: Model<Api>;
   apiKey: string;
