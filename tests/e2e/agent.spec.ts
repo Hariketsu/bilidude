@@ -150,8 +150,9 @@ test('with thinking on, the searches and page visits sit between the thinking st
   await expect(timeline.getByTestId('timeline-title')).toContainText('Thought for');
   await timeline.getByRole('button').first().click();
   const steps = timeline.locator('[data-testid$="-step"]');
-  await expect(steps).toHaveCount(5);
+  await expect(steps).toHaveCount(6);
   expect(await steps.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-testid')))).toEqual([
+    'attachment-step',
     'thinking-step',
     'search-step',
     'thinking-step',

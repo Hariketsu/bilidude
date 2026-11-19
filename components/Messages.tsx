@@ -54,8 +54,11 @@ export function AssistantMessage({
   onSeek,
   onRegenerate,
   onShowSources,
+  attached,
 }: {
   message: AssistantMsg;
+  /** Answers the message the video was attached to. */
+  attached: boolean;
   citations?: Citations;
   /** Copy timestamps as links to the video. */
   exportLinks: boolean;
@@ -74,7 +77,7 @@ export function AssistantMessage({
 
   return (
     <div data-testid="answer" data-status={streaming ? 'streaming' : message.status}>
-      {(preparing || message.thoughtMs !== undefined) && <AnswerTimeline message={message} onShowSources={onShowSources} />}
+      {(preparing || message.thoughtMs !== undefined) && <AnswerTimeline message={message} attached={attached} onShowSources={onShowSources} />}
       {!preparing && (
         <>
           {text && <Markdown text={text} citations={citations} sources={message.sources} onSeek={onSeek} />}

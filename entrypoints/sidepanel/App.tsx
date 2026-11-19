@@ -25,10 +25,16 @@ import { seekVideo } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
 import { describeError } from '@/lib/errors';
 import { applyTheme } from '@/lib/theme';
-import type { PresetId } from '@/lib/types';
+import type { Message, PresetId } from '@/lib/types';
 import { useActiveVideo } from './useActiveVideo';
 import { useChat } from './useChat';
 import { useSubtitleStatus } from './useSubtitleStatus';
+
+/** Whether the message at `index` answers the one the video was attached to. */
+function answersAttachment(messages: Message[], index: number): boolean {
+  const asked = messages[index - 1];
+  return asked?.role === 'user' && !!asked.video;
+}
 
 export default function App() {
   const { t } = useTranslation();
@@ -187,7 +193,7 @@ export default function App() {
           </div>
         )}
         <div className="space-y-8 py-4">
-          {chat.messages.map((message) =>
+          {chat.messages.map((message, i) =>
             message.role === 'user' ? (
               <UserMessage
                 key={message.id}
@@ -205,6 +211,7 @@ export default function App() {
                 onSeek={(seconds) => void seekVideo(message.video, seconds)}
                 onRegenerate={() => void chat.regenerate(message.id)}
                 onShowSources={(sources) => setOverlay({ sources })}
+                attached={answersAttachment(chat.messages, i)}
               />
             ),
           )}

@@ -22,7 +22,16 @@ export function stepsOf(message: AssistantMessage): AnswerStep[] {
  * then thinking, searches and pages read, in order. Open while it runs; it folds into one line
  * once the answer starts, with the video and the sites it read shown as icons.
  */
-export function AnswerTimeline({ message, onShowSources }: { message: AssistantMessage; onShowSources: (sources: SearchSource[]) => void }) {
+export function AnswerTimeline({
+  message,
+  attached,
+  onShowSources,
+}: {
+  message: AssistantMessage;
+  /** The answer to the message the video came with; follow-ups reuse the transcript without reading it again. */
+  attached: boolean;
+  onShowSources: (sources: SearchSource[]) => void;
+}) {
   const { t } = useTranslation();
   const preparing = message.status === 'streaming' && message.phase !== 'writing';
   const [open, setOpen] = useState(preparing);
@@ -38,7 +47,7 @@ export function AnswerTimeline({ message, onShowSources }: { message: AssistantM
     title =
       message.phase === 'transcribing'
         ? t('answer.timeline.transcribing')
-        : message.phase === 'reading'
+        : message.phase === 'reading' && attached
           ? t('answer.timeline.reading')
           : lastRunning
             ? t(last.type === 'search' ? 'answer.timeline.searching' : 'answer.timeline.browsing')
@@ -49,9 +58,11 @@ export function AnswerTimeline({ message, onShowSources }: { message: AssistantM
     title = t('answer.timeline.stopped');
   }
   const pages = foundPages(steps);
+  // A follow-up only shows the video while it is being transcribed (after an earlier answer was stopped).
+  const showVideo = attached || (preparing && message.phase === 'transcribing');
 
   const items: ReactNode[] = [
-    <Row key="attachment" icon={<AtSign className="size-4" strokeWidth={1.75} />}>
+    showVideo && <Row key="attachment" testId="attachment-step" icon={<AtSign className="size-4" strokeWidth={1.75} />}>
       <span className={preparing && message.phase !== 'thinking' ? 'shimmer-text' : ''}>
         {t(preparing && message.phase !== 'thinking' ? 'answer.readingAttachment' : 'answer.readAttachment')}
       </span>
@@ -67,28 +78,29 @@ export function AnswerTimeline({ message, onShowSources }: { message: AssistantM
     ...steps.map((step, i) => (
       <StepItem key={i} step={step} live={preparing && i === steps.length - 1} onShowSources={onShowSources} />
     )),
-  ];
+  ].filter(Boolean);
 
   return (
     <div data-testid="timeline" data-open={open} className="mb-4">
       <button
         type="button"
         aria-expanded={open}
+        disabled={!items.length}
         onClick={() => setOpen(!open)}
-        className="flex max-w-full items-center gap-1.5 text-[15px] font-medium text-fg-muted hover:text-fg"
+        className="flex max-w-full items-center gap-1.5 text-[15px] font-medium text-fg-muted enabled:hover:text-fg"
       >
         <Atom className={`size-[18px] shrink-0 ${preparing ? 'text-accent' : ''}`} strokeWidth={1.75} />
         <span data-testid="timeline-title" className={`truncate ${preparing ? 'shimmer-text' : ''}`}>
           {title}
         </span>
-        {!open && !preparing && (
+        {!open && !preparing && (showVideo || pages.length > 0) && (
           <span className="ml-0.5 flex">
-            <SiteIcons pages={pages} lead={<BiliIcon className="m-auto size-3 text-bili" />} />
+            <SiteIcons pages={pages} lead={showVideo && <BiliIcon className="m-auto size-3 text-bili" />} />
           </span>
         )}
-        {open ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
+        {items.length > 0 && (open ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />)}
       </button>
-      {open && (
+      {open && items.length > 0 && (
         <div className="mt-2">
           {items.map((item, i) => (
             <div key={i} className="relative">
@@ -104,9 +116,9 @@ export function AnswerTimeline({ message, onShowSources }: { message: AssistantM
 }
 
 /** A step with an icon in the timeline's gutter. */
-function Row({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+function Row({ icon, testId, children }: { icon: ReactNode; testId?: string; children: ReactNode }) {
   return (
-    <div className="relative pb-2 pl-[26px] text-sm leading-7 text-fg-muted">
+    <div data-testid={testId} className="relative pb-2 pl-[26px] text-sm leading-7 text-fg-muted">
       <span className="absolute top-1.5 left-0 flex text-fg-muted">{icon}</span>
       {children}
     </div>
