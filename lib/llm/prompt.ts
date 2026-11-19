@@ -36,7 +36,9 @@ Write in ${outputLanguage}, regardless of the video's language.
 - Write timestamps as plain text in square brackets, never as links.
 
 # Quotes
-- Quote with a Markdown blockquote. The quoted words must be copied verbatim from the transcript, in the original language, inside quotation marks, followed by the timestamp of the line they start on.
+- Quotes are checked against the transcript, and any that don't match are shown as ordinary text, so copy them exactly.
+- Quote with a Markdown blockquote: the words copied verbatim from the transcript, in the original language, inside quotation marks, followed by the timestamp of the line they start on. A quote may span up to four consecutive lines; mark omitted words with "…". Keep recognition errors as they are inside quotes.
+- If you can't reproduce the exact words, paraphrase in a normal sentence with a timestamp instead of a blockquote.
 - When the video's language differs from ${outputLanguage}, add the translation on the next line of the same blockquote.
 - Example:
   > “原话照抄” [03:05]
@@ -44,7 +46,7 @@ Write in ${outputLanguage}, regardless of the video's language.
 
 # Format
 Markdown with headings and short paragraphs. No tables. No preamble or closing remarks.
-${search ? webSearchSection(search) : ''}
+
 # The video
 <video>
 Title: ${video.title}${video.partTitle ? `\nPart: P${video.p} ${video.partTitle}` : ''}
@@ -54,16 +56,18 @@ Duration: ${formatTimestamp(video.durationSec)}${video.desc ? `\nDescription:\n$
 
 <transcript source="${SOURCE_LABEL[transcript.source]}"${transcript.lang ? ` language="${transcript.lang}"` : ''}${transcript.approximateTimes ? ' times="approximate, may be off by several seconds"' : ''}>
 ${lines}
-</transcript>`;
+</transcript>${search ? webSearchSection(search) : ''}`;
 }
 
-// Local date (sv formats as YYYY-MM-DD). It lets the model judge how recent results are; without it, it assumes its training year.
+// After the transcript, so turning search on keeps the cached prefix. Today's date comes with each user message.
 const webSearchSection = (search: 'server' | 'client') => `
+
 # Web search
-Today is ${new Date().toLocaleDateString('sv')}. You can search the web. Search only when it helps: a name or term in the transcript looks misrecognized, or the question needs facts the video does not give. Keep searches few and specific.
+You can search the web. Search only when it helps: a name or term in the transcript looks misrecognized, or the question needs facts the video does not give. Keep searches few and specific.
 - Use what you find to correct misrecognized words in your own writing; quotes stay verbatim.
 - Mark information from the web as such and never give it a video timestamp.
-${search === 'client' ? '- Cite search results by their number right after the sentence that uses them, like [3], or [2][5] for several.\n' : ''}`;
+- Write nothing before or between searches: the panel shows search progress itself, and any text you write becomes part of the answer.
+${search === 'client' ? '- Cite search results by their number right after the sentence that uses them, like [3], or [2][5] for several.' : ''}`.trimEnd();
 
 const PRESET_PROMPTS: Record<PresetId, string> = {
   recap: `Recap this video.
@@ -76,15 +80,23 @@ const PRESET_PROMPTS: Record<PresetId, string> = {
 - If the uploader or Bilibili provides chapters, follow their division and titles (translated if needed).
 - Cover the whole video; the last chapter should start within its final quarter.`,
   quotes: `Pick the 5–8 most insightful or memorable quotes from this video, in the video's order.
-- Each: a numbered level-2 heading (\`## 1. Short headline\`) summarizing the quote's point, then the quote as a blockquote following the quote rules. You may join consecutive transcript lines into one quote.`,
+- Each: a numbered level-2 heading (\`## 1. Short headline\`) summarizing the quote's point, then the quote as a blockquote following the quote rules. You may join up to four consecutive transcript lines into one quote.`,
 };
 
-/** What the model receives for a user turn; presets expand to their instructions. */
+/**
+ * What the model receives for a user turn; presets expand to their instructions. Today's date
+ * goes here rather than in the system prompt, which must stay the same for the prompt cache;
+ * without it, models assume their training year.
+ */
 export function buildUserPrompt(text: string, preset?: PresetId, playbackSeconds?: number): string {
   const parts = [preset && PRESET_PROMPTS[preset], text].filter(Boolean);
-  if (playbackSeconds !== undefined) {
-    parts.push(`[Current playback position: ${formatTimestamp(playbackSeconds)}. Use it when I refer to "now", "this part" or "what was just said".]`);
-  }
+  // Local date; sv formats as YYYY-MM-DD.
+  const today = `Today: ${new Date().toLocaleDateString('sv')}.`;
+  parts.push(
+    playbackSeconds === undefined
+      ? `[${today}]`
+      : `[${today} Current playback position: ${formatTimestamp(playbackSeconds)}. Use it when I refer to "now", "this part" or "what was just said".]`,
+  );
   return parts.join('\n\n');
 }
 
