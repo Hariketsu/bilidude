@@ -53,6 +53,19 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const STORAGE_KEY = 'settings';
 
+/** Until speech recognition is set up, it follows the model: DeepSeek's own ASR when the model is DeepSeek. */
+export function defaultAsrSettings(llm: Settings['llm']): AsrSettings {
+  return llm.provider === 'deepseek' && llm.apiKeys.deepseek?.trim()
+    ? { ...DEFAULT_ASR_SETTINGS, enabled: true, provider: 'deepseek' }
+    : DEFAULT_ASR_SETTINGS;
+}
+
+/** Settings after first-time model setup; speech recognition left at its defaults follows the model. */
+export function withFirstModel(settings: Settings, llm: Settings['llm']): Settings {
+  const asrUntouched = JSON.stringify(settings.asr) === JSON.stringify(DEFAULT_ASR_SETTINGS);
+  return { ...settings, llm, asr: asrUntouched ? defaultAsrSettings(llm) : settings.asr };
+}
+
 export async function loadSettings(): Promise<Settings> {
   const stored = (await browser.storage.local.get(STORAGE_KEY))[STORAGE_KEY] as Partial<Settings> | undefined;
   // 0.1.0 stored only the custom provider's URL, as `customBaseUrl`.
@@ -62,7 +75,7 @@ export async function loadSettings(): Promise<Settings> {
     ...DEFAULT_SETTINGS,
     ...stored,
     llm: { ...DEFAULT_SETTINGS.llm, ...llm },
-    asr: { ...DEFAULT_SETTINGS.asr, ...stored?.asr },
+    asr: stored?.asr ? { ...DEFAULT_SETTINGS.asr, ...stored.asr } : defaultAsrSettings({ ...DEFAULT_SETTINGS.llm, ...llm }),
     cache: { ...DEFAULT_SETTINGS.cache, ...stored?.cache },
   };
 }

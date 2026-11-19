@@ -18,7 +18,7 @@ import { applyUiLanguage } from '@/lib/i18n';
 import { effectiveThinking, resolveModel, thinkingLevels } from '@/lib/llm/providers';
 import { PRESETS } from '@/lib/presets';
 import { downloadSubtitles, type SubtitleFormat } from '@/lib/subtitles';
-import { saveSettings, useSettings } from '@/lib/settings';
+import { saveSettings, useSettings, withFirstModel } from '@/lib/settings';
 import { seekVideo } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
 import { describeError } from '@/lib/errors';
@@ -114,7 +114,7 @@ export default function App() {
 
   // "As soon as the panel shows the video": transcribe ahead of the first question.
   useEffect(() => {
-    const asr = settings && settings.asr.trigger === 'open' ? resolveAsr(settings.asr) : undefined;
+    const asr = settings && settings.asr.trigger === 'open' ? resolveAsr(settings.asr, settings.llm.apiKeys) : undefined;
     if (!activeVideo || !asr) return;
     getTranscript(activeVideo)
       .then((transcript) => transcript ?? transcribeVideo(activeVideo, asr))
@@ -126,7 +126,7 @@ export default function App() {
     try {
       let transcript = await getTranscript(video);
       if (!transcript) {
-        const asr = resolveAsr(settings.asr);
+        const asr = resolveAsr(settings.asr, settings.llm.apiKeys);
         if (!asr) return;
         setSubtitleJob('pending');
         // Joins a transcription already started by a question, if any.
@@ -175,7 +175,7 @@ export default function App() {
               <h1 className="text-lg font-semibold">{t('setup.title')}</h1>
               <p className="text-sm text-fg-muted">{t('setup.subtitle')}</p>
             </div>
-            <ModelSetup value={settings.llm} onSave={(llm) => saveSettings({ ...settings, llm })} />
+            <ModelSetup value={settings.llm} onSave={(llm) => saveSettings(withFirstModel(settings, llm))} />
           </div>
         )}
         {isEmpty && !needsSetup && !video && (

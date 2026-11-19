@@ -159,6 +159,7 @@ const en = {
       allow: 'Allow access',
     },
     transcription: {
+    sharedKey: "Same as the model's DeepSeek key",
       title: 'Audio transcription',
       enable: 'Transcribe videos without subtitles',
       service: 'Service',

@@ -1,6 +1,6 @@
 // Deterministic UI tests: subtitles and the LLM are mocked, so these always run.
 import { readFile } from 'node:fs/promises';
-import { ask, chipSeconds, configure, expect, MOCK_LLM, mockLlm, mockNoSubtitles, mockSubtitles, openPanel, test } from './fixtures';
+import { ask, chipSeconds, configure, configureAsr, expect, MOCK_LLM, mockLlm, mockNoSubtitles, mockSubtitles, openPanel, test } from './fixtures';
 
 test('asks to open a video when the active tab is not one', async ({ context, extensionId }) => {
   const panel = await context.newPage();
@@ -132,6 +132,7 @@ test('explains when a video has no subtitles', async ({ context, extensionId }) 
   await mockNoSubtitles(context);
   const { panel } = await openPanel(context, extensionId);
   await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { enabled: false }); // on by default with DeepSeek
 
   const answer = await ask(panel, { preset: 'Recap' });
   await expect(answer.getByTestId('answer-error')).toContainText('no subtitles');
@@ -185,6 +186,7 @@ test('offers to turn on transcription when a video has no subtitles', async ({ c
   await mockNoSubtitles(context);
   const { panel } = await openPanel(context, extensionId);
   await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { enabled: false }); // on by default with DeepSeek
 
   await panel.getByRole('button', { name: 'Download' }).click();
   await expect(panel.getByText('Turn on audio transcription to get them.')).toBeVisible();

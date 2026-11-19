@@ -9,7 +9,7 @@ export function useSubtitleStatus(video: VideoRef | undefined, settings: Setting
   const [availability, setAvailability] = useState<SubtitleAvailability>();
   const [progress, setProgress] = useState<AsrProgress>();
   const key = video && `${video.bvid}:${video.cid}`;
-  const canTranscribe = !!settings && !!resolveAsr(settings.asr);
+  const canTranscribe = !!settings && !!resolveAsr(settings.asr, settings.llm.apiKeys);
 
   useEffect(() => {
     setProgress(undefined);

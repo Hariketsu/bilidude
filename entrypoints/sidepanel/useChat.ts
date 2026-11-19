@@ -100,7 +100,7 @@ export function useChat(settings: Settings | undefined) {
     }
     if (controller.signal.aborted) return;
     if (!loaded) {
-      const asr = resolveAsr(settings.asr);
+      const asr = resolveAsr(settings.asr, settings.llm.apiKeys);
       if (!asr) {
         update(id, { status: 'error', error: t('errors.noSubtitles') });
         return;

@@ -159,6 +159,7 @@ const zhTW: Messages = {
       allow: '允許存取',
     },
     transcription: {
+    sharedKey: '與模型共用 DeepSeek Key',
       title: '語音轉錄',
       enable: '為沒有字幕的影片轉錄語音',
       service: '服務',

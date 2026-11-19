@@ -46,7 +46,12 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
       <div className="flex-1 space-y-6 overflow-y-auto px-4 pt-2 pb-8">
         <ModelSettings title={t('settings.model.title')} value={current.llm} onChange={(llm) => update({ llm })} />
 
-        <TranscriptionSettings title={t('settings.transcription.title')} value={current.asr} onChange={(asr) => update({ asr })} />
+        <TranscriptionSettings
+          title={t('settings.transcription.title')}
+          value={current.asr}
+          llmApiKeys={current.llm.apiKeys}
+          onChange={(asr) => update({ asr })}
+        />
 
         <Group title={t('settings.general.title')}>
           <Select

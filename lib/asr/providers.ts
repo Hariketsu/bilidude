@@ -4,7 +4,7 @@ import { aacToWav } from './wav';
 import { ServiceError, serviceFetch } from '../errors';
 import { t } from '../i18n';
 
-export type AsrProviderId = 'bcut' | 'openai' | 'groq' | 'siliconflow' | 'dashscope' | 'custom';
+export type AsrProviderId = 'bcut' | 'deepseek' | 'openai' | 'groq' | 'siliconflow' | 'dashscope' | 'custom';
 export type DashscopeRegion = 'cn-beijing' | 'ap-southeast-1';
 
 export interface AsrSettings {
@@ -33,13 +33,16 @@ interface ProviderInfo {
   chunkSeconds: number;
   /** Free services need no API key (and have no model choice). */
   free?: boolean;
+  /** One fixed model, so there is nothing to choose. */
+  noModel?: boolean;
 }
 
 /** API hosts are listed in `host_permissions`; custom endpoints are requested when saved. */
 // Chunk lengths: 5 minutes is DashScope's limit and keeps WAV uploads under 25MB; without
-// timestamps, 1-minute chunks bound the estimate; Bcut is fast and handles long audio.
+// timestamps, 1-minute chunks bound the estimate (DeepSeek's limit is 2 minutes); Bcut is fast and handles long audio.
 export const ASR_PROVIDERS: ProviderInfo[] = [
   { id: 'bcut', name: 'Bilibili Bcut (free)', defaultModel: '', timestamps: true, chunkSeconds: 600, free: true },
+  { id: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', defaultModel: '', timestamps: false, chunkSeconds: 60, noModel: true },
   { id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', defaultModel: 'whisper-1', timestamps: true, chunkSeconds: 300 },
   { id: 'groq', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', defaultModel: 'whisper-large-v3-turbo', timestamps: true, chunkSeconds: 300 },
   { id: 'dashscope', name: 'Alibaba Cloud Model Studio', defaultModel: 'fun-asr-flash-2026-06-15', timestamps: true, chunkSeconds: 300 },
@@ -72,14 +75,18 @@ export function getAsrProvider(id: AsrProviderId): ProviderInfo {
   return ASR_PROVIDERS.find((p) => p.id === id) ?? ASR_PROVIDERS[0]!;
 }
 
-/** The configured provider, or undefined when ASR is off or incomplete. */
-export function resolveAsr(asr: AsrSettings): AsrConfig | undefined {
+/**
+ * The configured provider, or undefined when ASR is off or incomplete. A provider that also
+ * serves the chat model (DeepSeek) falls back to the model's key from `llmApiKeys`.
+ */
+export function resolveAsr(asr: AsrSettings, llmApiKeys: Partial<Record<string, string>>): AsrConfig | undefined {
   if (!asr.enabled) return undefined;
   const provider = getAsrProvider(asr.provider);
-  const apiKey = asr.apiKeys[provider.id]?.trim() ?? '';
+  const ownKey = asr.apiKeys[provider.id]?.trim();
+  const apiKey = (ownKey || (provider.id === 'deepseek' ? llmApiKeys.deepseek?.trim() : '')) ?? '';
   const model = asr.models[provider.id]?.trim() || provider.defaultModel;
   const baseUrl = (provider.id === 'custom' ? asr.customBaseUrl : (provider.baseUrl ?? '')).trim().replace(/\/+$/, '');
-  if (!provider.free && (!apiKey || !model)) return undefined;
+  if (!provider.free && (!apiKey || (!model && !provider.noModel))) return undefined;
   if (provider.id === 'custom' && !baseUrl) return undefined;
   return {
     provider,
@@ -107,6 +114,7 @@ export interface ChunkTranscript {
 
 export async function transcribeChunk(config: AsrConfig, chunk: AacChunk, sampleRate: number, signal?: AbortSignal) {
   if (config.provider.id === 'bcut') return transcribeBcut(chunk, signal);
+  if (config.provider.id === 'deepseek') return transcribeDeepseek(config, chunk, signal);
   return config.provider.id === 'dashscope'
     ? transcribeDashscope(config, chunk, sampleRate, signal)
     : transcribeOpenAi(config, chunk, signal);
@@ -144,6 +152,21 @@ async function transcribeOpenAi(config: AsrConfig, chunk: AacChunk, signal?: Abo
     .map((s) => ({ start: Number(s.start), end: Number(s.end), text: String(s.text ?? '').trim() }))
     .filter((s) => s.text && Number.isFinite(s.start));
   if (segments.length > 0) return { segments, approximate: false };
+  return { segments: estimateSegments(data.text ?? '', chunk.durationSec), approximate: true };
+}
+
+/** DeepSeek's speech recognition tool: 16-bit PCM WAV of up to 2 minutes in, plain text out. */
+async function transcribeDeepseek(config: AsrConfig, chunk: AacChunk, signal?: AbortSignal): Promise<ChunkTranscript> {
+  const form = new FormData();
+  form.append('file', await aacToWav(chunk.frames), 'audio.wav');
+  const response = await serviceFetch(config.provider.name, `${config.baseUrl}/v1/tools/asr`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${config.apiKey}` },
+    body: form,
+    signal,
+  });
+  if (!response.ok) throw await errorFrom(config, response);
+  const data: { text?: string } = await response.json();
   return { segments: estimateSegments(data.text ?? '', chunk.durationSec), approximate: true };
 }
 

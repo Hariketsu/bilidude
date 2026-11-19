@@ -136,7 +136,7 @@ export function HistoryPanel({
   /** Sessions waiting for the user to confirm their deletion. */
   const [deleting, setDeleting] = useState<string[]>();
   const controller = useRef<AbortController>(undefined);
-  const asr = resolveAsr(settings.asr);
+  const asr = resolveAsr(settings.asr, settings.llm.apiKeys);
 
   useEffect(() => {
     void listSessions().then(setSessions);

@@ -12,6 +12,14 @@ pnpm zip        # 打包构建产物用于发布
 pnpm compile    # 类型检查
 ```
 
+## 单元测试
+
+不依赖浏览器的逻辑（如报错分类）用 [Vitest](https://vitest.dev) 测，CI 里也会运行：
+
+```bash
+pnpm test:unit
+```
+
 ## 端到端测试
 
 测试用 [Playwright](https://playwright.dev) 把构建好的扩展加载进 Chromium。测试会打开真实的 B 站页面，需要能访问 bilibili.com。
@@ -23,7 +31,7 @@ pnpm test:e2e                           # 先构建，再运行全部测试
 ```
 
 - 大部分测试会模拟字幕、模型和转写接口，始终运行。
-- 调用真实 API 的测试只在 `.env.local` 里配置后才运行（见 [`.env.example`](.env.example)）：`tests/e2e/llm.spec.ts` 测模型服务商，`tests/e2e/asr.spec.ts` 的最后一个用例测转写服务。必剪也需要手动开启，因为它按网络限流。
+- 调用真实 API 的测试只在 `.env.local` 里配置后才运行（见 [`.env.example`](.env.example)）：`tests/e2e/llm.spec.ts` 测模型服务商，`tests/e2e/asr.spec.ts` 里的 “transcribes with the provider from .env.local” 测转写服务。必剪也需要手动开启，因为它按网络限流。
 - 真实模型的回答会附在 HTML 报告里：`pnpm exec playwright show-report`。
 
 ## 项目结构

@@ -316,3 +316,59 @@ test('an expired ASR key is explained, with the original error on request', asyn
   await error.getByRole('button', { name: 'Details' }).click();
   await expect(error).toContainText('HTTP 401: Invalid API Key');
 });
+
+test('DeepSeek: uploads WAV in chunks of at most a minute, estimating times', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  const requests = await mockLlm(context, 'A song. [00:20]');
+  const uploads: { auth: string | null; wav: boolean }[] = [];
+  // Registered after mockLlm, so it takes precedence for this path.
+  await context.route('https://api.deepseek.com/v1/tools/asr', (route) => {
+    const body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    uploads.push({ auth: route.request().headers().authorization ?? null, wav: body.includes('RIFF') && body.includes('WAVE') });
+    return route.fulfill({ json: { request_id: 'r', text: '第一句。第二句。', duration_ms: 60_000 } });
+  });
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { provider: 'deepseek', apiKeys: { deepseek: 'sk-asr' } });
+
+  await ask(panel, { preset: 'Recap' }, 60_000);
+  expect(uploads.length).toBe(4); // 3:33 in chunks of at most a minute
+  expect(uploads.every((u) => u.auth === 'Bearer sk-asr' && u.wav)).toBe(true);
+  expect(systemPrompt(requests)).toContain('times=\\"approximate');
+});
+
+test('with DeepSeek as the model, transcription uses DeepSeek and its key without any setup', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  await mockLlm(context, 'A song. [00:20]');
+  const auth: (string | undefined)[] = [];
+  await context.route('https://api.deepseek.com/v1/tools/asr', (route) => {
+    auth.push(route.request().headers().authorization);
+    return route.fulfill({ json: { request_id: 'r', text: '一句。', duration_ms: 60_000 } });
+  });
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM); // no ASR settings at all
+
+  const answer = await ask(panel, { preset: 'Recap' }, 60_000);
+  await expect(answer).toHaveAttribute('data-status', 'done');
+  expect(auth.length).toBeGreaterThan(0);
+  expect(auth.every((a) => a === `Bearer ${MOCK_LLM.apiKey}`)).toBe(true);
+});
+
+test('connecting DeepSeek in the setup form also sets up transcription', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  await mockLlm(context, 'A song. [00:20]');
+  let calls = 0;
+  await context.route('https://api.deepseek.com/v1/tools/asr', (route) => {
+    calls++;
+    return route.fulfill({ json: { request_id: 'r', text: '一句。', duration_ms: 60_000 } });
+  });
+  const { panel } = await openPanel(context, extensionId);
+  await panel.getByLabel('Provider').selectOption('deepseek');
+  await panel.getByLabel('API key').fill('sk-test');
+  await panel.getByLabel('Model').selectOption('deepseek-flash');
+  await panel.getByRole('button', { name: 'Connect' }).click();
+
+  const answer = await ask(panel, { preset: 'Recap' }, 60_000);
+  await expect(answer).toHaveAttribute('data-status', 'done');
+  expect(calls).toBeGreaterThan(0);
+});

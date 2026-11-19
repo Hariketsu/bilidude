@@ -159,6 +159,7 @@ const zhCN: Messages = {
       allow: '允许访问',
     },
     transcription: {
+    sharedKey: '与模型共用 DeepSeek Key',
       title: '语音转写',
       enable: '为没有字幕的视频转写语音',
       service: '服务',

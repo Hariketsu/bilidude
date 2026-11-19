@@ -7,10 +7,13 @@ import { Group, Hint, Select, Switch, TextInput } from './SettingsUi';
 export function TranscriptionSettings({
   title,
   value,
+  llmApiKeys,
   onChange,
 }: {
   title: string;
   value: AsrSettings;
+  /** DeepSeek transcription can use the model's key. */
+  llmApiKeys: Partial<Record<string, string>>;
   onChange: (asr: AsrSettings) => void;
 }) {
   const { t } = useTranslation();
@@ -72,19 +75,25 @@ export function TranscriptionSettings({
               <TextInput
                 label={t('settings.model.apiKey')}
                 secret
-                placeholder={t('settings.model.required')}
+                placeholder={
+                  provider.id === 'deepseek' && llmApiKeys.deepseek?.trim()
+                    ? t('settings.transcription.sharedKey')
+                    : t('settings.model.required')
+                }
                 value={value.apiKeys[provider.id] ?? ''}
                 onChange={(key) => setForProvider('apiKeys', key)}
               />
-              <TextInput
-                label={t('settings.model.model')}
-                placeholder={provider.defaultModel || t('settings.model.modelId')}
-                value={value.models[provider.id] ?? ''}
-                onChange={(id) => setForProvider('models', id)}
-              />
+              {!provider.noModel && (
+                <TextInput
+                  label={t('settings.model.model')}
+                  placeholder={provider.defaultModel || t('settings.model.modelId')}
+                  value={value.models[provider.id] ?? ''}
+                  onChange={(id) => setForProvider('models', id)}
+                />
+              )}
             </>
           )}
-          {!resolveAsr(value) && <Hint>{t('settings.transcription.incomplete')}</Hint>}
+          {!resolveAsr(value, llmApiKeys) && <Hint>{t('settings.transcription.incomplete')}</Hint>}
 
           <Select
             label={t('settings.transcription.start')}
