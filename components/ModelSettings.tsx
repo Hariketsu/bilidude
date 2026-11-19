@@ -8,9 +8,11 @@ import {
   listModels,
   ModelListError,
   PROVIDERS,
+  resolveModel,
   thinkingLevels,
 } from '@/lib/llm/providers';
 import type { Settings } from '@/lib/settings';
+import { AccountLoginRow } from './DeepseekAccount';
 import { HostAccess, requestHostAccess } from './HostAccess';
 import { Group, Row, Select, TextInput } from './SettingsUi';
 
@@ -25,16 +27,21 @@ export function ModelSettings({
   value,
   onChange,
   hostAccess = true,
+  showAccount = false,
 }: {
   title?: string;
   value: LlmSettings;
   onChange: (llm: LlmSettings) => void;
   /** Offer a custom base URL's permission inline (the setup form asks on its own button instead). */
   hostAccess?: boolean;
+  /** Show the signed-in DeepSeek account in the form (settings show it in its own card instead). */
+  showAccount?: boolean;
 }) {
   const { t } = useTranslation();
   const provider = value.provider;
   const isCustom = provider === CUSTOM_PROVIDER;
+  // The account token only works on DeepSeek's own endpoint, so it replaces the URL and key fields.
+  const byAccount = provider === 'deepseek' && value.deepseekAuth === 'account';
   const models = listModels(provider);
   const modelId = value.models[provider] ?? '';
   const model = models.find((m) => m.id === modelId);
@@ -96,7 +103,11 @@ export function ModelSettings({
   };
 
   return (
-    <Group title={title} footer={t('settings.model.keyNote')}>
+    <Group
+      title={title}
+      // In settings the account's own card carries the note.
+      footer={byAccount ? (showAccount || !value.deepseekAccount ? t('account.experimentalNote') : undefined) : t('settings.model.keyNote')}
+    >
       <Select
         label={t('settings.model.provider')}
         value={provider}
@@ -106,13 +117,33 @@ export function ModelSettings({
           set({ provider: id });
         }}
       />
-      <TextInput
+      {provider === 'deepseek' && (
+        <Row label={t('account.connectWith')} group>
+          <span className="inline-flex rounded-full bg-bg p-0.5">
+            {(['account', 'key'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={value.deepseekAuth === mode}
+                onClick={() => set({ deepseekAuth: mode })}
+                className={`rounded-full px-3 py-1 text-[13px] transition-colors ${
+                  value.deepseekAuth === mode ? 'bg-surface-raised font-medium text-fg' : 'text-fg-muted hover:text-fg'
+                }`}
+              >
+                {t(mode === 'account' ? 'account.byAccount' : 'account.byKey')}
+              </button>
+            ))}
+          </span>
+        </Row>
+      )}
+      {byAccount && (showAccount || !value.deepseekAccount) && <AccountLoginRow account={value.deepseekAccount} />}
+      {!byAccount && <TextInput
         label={t('settings.model.baseUrl')}
         placeholder={isCustom ? 'https://api.example.com/v1' : defaultBaseUrl(provider)}
         value={baseUrl}
         onChange={(url) => setForProvider('baseUrls', url)}
-      />
-      {hostAccess && <HostAccess baseUrl={baseUrl} />}
+      />}
+      {hostAccess && !byAccount && <HostAccess baseUrl={baseUrl} />}
       {provider === 'openai' && baseUrl.trim() && (
         <Select
           label={t('settings.model.api')}
@@ -124,13 +155,15 @@ export function ModelSettings({
           onChange={(openaiApi) => set({ openaiApi })}
         />
       )}
-      <TextInput
-        label={t('settings.model.apiKey')}
-        secret
-        placeholder={t('settings.model.required')}
-        value={value.apiKeys[provider] ?? ''}
-        onChange={(key) => setForProvider('apiKeys', key)}
-      />
+      {!byAccount && (
+        <TextInput
+          label={t('settings.model.apiKey')}
+          secret
+          placeholder={t('settings.model.required')}
+          value={value.apiKeys[provider] ?? ''}
+          onChange={(key) => setForProvider('apiKeys', key)}
+        />
+      )}
       {isCustom && (
         <Row group label={t('settings.model.modelList')}>
           <span className="flex min-w-0 items-center justify-end gap-3">
@@ -192,13 +225,12 @@ export function ModelSettings({
 /** First-run setup: the model card plus a button that saves it (and asks for a custom base URL's host). */
 export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm: LlmSettings) => Promise<void> }) {
   const { t } = useTranslation();
-  const [draft, setDraft] = useState(value);
+  const [edited, setDraft] = useState(value);
   const [error, setError] = useState<string>();
+  // The login completes in another page, which saves the account; take it from the live settings.
+  const draft = { ...edited, deepseekAccount: value.deepseekAccount };
   const baseUrl = draft.baseUrls[draft.provider]?.trim() ?? '';
-  const complete =
-    !!draft.apiKeys[draft.provider]?.trim() &&
-    !!draft.models[draft.provider]?.trim() &&
-    (draft.provider !== CUSTOM_PROVIDER || !!baseUrl);
+  const complete = !!resolveModel(draft);
 
   const connect = async () => {
     const accessError = baseUrl ? await requestHostAccess(baseUrl) : undefined;
@@ -214,6 +246,7 @@ export function ModelSetup({ value, onSave }: { value: LlmSettings; onSave: (llm
       <ModelSettings
         value={draft}
         hostAccess={false}
+        showAccount
         onChange={(llm) => {
           setDraft(llm);
           setError(undefined);

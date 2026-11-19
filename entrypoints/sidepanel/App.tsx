@@ -122,7 +122,7 @@ export default function App() {
 
   // "As soon as the panel shows the video": transcribe ahead of the first question.
   useEffect(() => {
-    const asr = settings && settings.asr.trigger === 'open' ? resolveAsr(settings.asr, settings.llm.apiKeys) : undefined;
+    const asr = settings && settings.asr.trigger === 'open' ? resolveAsr(settings.asr, settings.llm) : undefined;
     if (!activeVideo || !asr) return;
     getTranscript(activeVideo)
       .then((transcript) => transcript ?? transcribeVideo(activeVideo, asr))
@@ -134,7 +134,7 @@ export default function App() {
     try {
       let transcript = await getTranscript(video);
       if (!transcript) {
-        const asr = resolveAsr(settings.asr, settings.llm.apiKeys);
+        const asr = resolveAsr(settings.asr, settings.llm);
         if (!asr) return;
         setSubtitleJob('pending');
         // Joins a transcription already started by a question, if any.

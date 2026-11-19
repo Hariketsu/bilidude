@@ -1,6 +1,7 @@
 import { agentLoop, type AgentTool } from '@earendil-works/pi-agent-core';
 import type { Api, AssistantMessage, Message, Model, ThinkingLevel } from '@earendil-works/pi-ai';
 import { insertCitations, numberSources, type Citation } from '../sources';
+import { withAccountAuth } from '../deepseekAccount';
 import { DEEPSEEK_SEARCH_TOOL, watchServerTools } from './deepseekServerTools';
 import { streamChat } from './providers';
 import type { SearchSource } from './search';
@@ -38,6 +39,8 @@ export interface AgentRun {
   history: Message[];
   prompt: string;
   tools: AgentTool<any>[];
+  /** The signed-in DeepSeek account's token, sent instead of `apiKey`'s Bearer header. */
+  accountToken?: string;
   /** Turn on DeepSeek's server-side web search (DeepSeek models only). */
   serverSearch?: boolean;
   /** Called with the latest state, at most once per animation frame. */
@@ -85,7 +88,7 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
       toolExecution: 'sequential',
       // pi-ai reports failures as text only; the status tells which advice fits.
       fetch: async (input, init) => {
-        const response = await fetch(input, init);
+        const response = await fetch(input, run.accountToken ? withAccountAuth(init, run.accountToken) : init);
         httpStatus = response.status;
         if (!run.serverSearch || !response.ok || !response.body) return response;
         // One copy for pi-ai, one for the server-side search events it ignores.

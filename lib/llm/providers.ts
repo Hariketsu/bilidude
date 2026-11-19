@@ -8,6 +8,7 @@ import { openaiProvider } from '@earendil-works/pi-ai/providers/openai';
 import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript';
 import type { Settings } from '../settings';
+import { deepseekCredential } from '../deepseekAccount';
 
 export const CUSTOM_PROVIDER = 'custom';
 
@@ -61,6 +62,8 @@ export async function fetchModelIds(baseUrl: string, apiKey: string, signal?: Ab
 export interface ResolvedModel {
   model: Model<Api>;
   apiKey: string;
+  /** Set when DeepSeek is reached with the signed-in account; it replaces the API key header. */
+  accountToken?: string;
 }
 
 /** A built-in provider's own endpoint, used when no base URL is set. */
@@ -71,7 +74,8 @@ export function defaultBaseUrl(providerId: string): string | undefined {
 /** The model the user configured, or undefined if setup is incomplete. */
 export function resolveModel(llm: Settings['llm']): ResolvedModel | undefined {
   const { provider } = llm;
-  const apiKey = llm.apiKeys[provider]?.trim();
+  const credential = provider === 'deepseek' ? deepseekCredential(llm) : undefined;
+  const apiKey = credential ? (credential.kind === 'key' ? credential.key : credential.token) : llm.apiKeys[provider]?.trim();
   const modelId = llm.models[provider]?.trim();
   const customUrl = llm.baseUrls[provider]?.trim().replace(/\/+$/, '');
   const baseUrl = customUrl || defaultBaseUrl(provider);
@@ -82,7 +86,7 @@ export function resolveModel(llm: Settings['llm']): ResolvedModel | undefined {
   let model = listed ? { ...listed, baseUrl } : unlistedModel(provider, modelId, baseUrl);
   // Many OpenAI-compatible proxies only offer Chat Completions.
   if (provider === 'openai' && customUrl && llm.openaiApi === 'completions') model = { ...model, api: 'openai-completions' };
-  return { model, apiKey };
+  return { model, apiKey, ...(credential?.kind === 'account' && { accountToken: credential.token }) };
 }
 
 /** A model id typed by the user; its limits and abilities are unknown. */

@@ -23,6 +23,8 @@ test('setup form connects a model', async ({ context, extensionId }) => {
   await expect(panel.getByText('Connect a model')).toBeVisible();
 
   await panel.getByLabel('Provider').selectOption('deepseek');
+  // DeepSeek offers the account login first.
+  await panel.getByRole('button', { name: 'API key' }).click();
   await panel.getByLabel('API key').fill('sk-test');
   await panel.getByLabel('Model').selectOption('deepseek-flash');
   await panel.getByRole('button', { name: 'Connect' }).click();

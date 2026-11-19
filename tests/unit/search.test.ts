@@ -8,7 +8,7 @@ const result = (n: number) => ({ title: `Page ${n}`, url: `https://example.com/$
 it('numbers results across searches, giving a page found again its first number', async () => {
   const responses = [[result(1), result(2)], [result(2), result(3)]];
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({ results: responses.shift() })));
-  const tool = webSearchTool('sk');
+  const tool = webSearchTool({ kind: 'key', key: 'sk' });
 
   const first = await tool.execute('a', { query: 'one' });
   const second = await tool.execute('b', { query: 'two' });

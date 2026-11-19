@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { UI_LANGUAGE_NAMES, UI_LANGUAGES } from '@/lib/i18n';
 import { saveSettings, type Settings } from '@/lib/settings';
 import type { ThemePreference } from '@/lib/theme';
+import { AccountCard } from './DeepseekAccount';
 import { IconButton } from './IconButton';
 import { ModelSettings } from './ModelSettings';
 import { Group, Hint, Row, Select, Switch } from './SettingsUi';
@@ -31,7 +32,9 @@ const THEMES: ThemePreference[] = ['system', 'light', 'dark'];
 export function SettingsPanel({ settings, onClose }: { settings: Settings; onClose: () => void }) {
   const { t } = useTranslation();
   // Edits apply to this copy first, so typing never waits for storage to echo back.
-  const [current, setCurrent] = useState(settings);
+  const [edited, setCurrent] = useState(settings);
+  // The account is written by the login page while this panel is open; never let this copy overwrite it.
+  const current = { ...edited, llm: { ...edited.llm, deepseekAccount: settings.llm.deepseekAccount } };
   const update = (patch: Partial<Settings>) => {
     const next = { ...current, ...patch };
     setCurrent(next);
@@ -45,12 +48,15 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
         <h1 className="text-[15px] font-semibold">{t('settings.title')}</h1>
       </header>
       <div className="flex-1 space-y-6 overflow-y-auto px-4 pt-2 pb-8">
+        {current.llm.provider === 'deepseek' && current.llm.deepseekAccount && (
+          <AccountCard llm={current.llm} onChange={(llm) => update({ llm })} />
+        )}
         <ModelSettings title={t('settings.model.title')} value={current.llm} onChange={(llm) => update({ llm })} />
 
         <TranscriptionSettings
           title={t('settings.transcription.title')}
           value={current.asr}
-          llmApiKeys={current.llm.apiKeys}
+          llm={current.llm}
           onChange={(asr) => update({ asr })}
         />
 

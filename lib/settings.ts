@@ -4,6 +4,7 @@ import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
 import { DEFAULT_CACHE_POLICY, type CachePolicy } from './cache';
 import { resolveUiLanguage, type UiLanguageSetting } from './i18n';
 import type { ExportBundle } from './batchExport';
+import { deepseekCredential, type DeepseekAccount } from './deepseekAccount';
 import type { ThemePreference } from './theme';
 
 export interface Settings {
@@ -20,8 +21,12 @@ export interface Settings {
     openaiApi: 'responses' | 'completions';
     /** Preferred reasoning effort; each request clamps it to what the model supports. */
     thinking: ModelThinkingLevel;
-    /** Let the model search the web (DeepSeek's search, so it needs a DeepSeek key). */
+    /** Let the model search the web (DeepSeek's search, so it needs a DeepSeek key or account). */
     webSearch: boolean;
+    /** How DeepSeek is reached: the signed-in account (experimental) or an API key. */
+    deepseekAuth: 'account' | 'key';
+    /** The signed-in DeepSeek account; see lib/deepseekAccount.ts. */
+    deepseekAccount?: DeepseekAccount;
   };
   /** Interface language; `auto` follows the browser. */
   uiLanguage: UiLanguageSetting;
@@ -42,7 +47,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   // Thinking off: recaps come back in seconds instead of after a long reasoning pass.
-  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, openaiApi: 'responses', thinking: 'off', webSearch: false },
+  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, openaiApi: 'responses', thinking: 'off', webSearch: false, deepseekAuth: 'account' },
   uiLanguage: 'auto',
   outputLanguage: 'auto',
   theme: 'system',
@@ -57,14 +62,14 @@ const STORAGE_KEY = 'settings';
 
 /** Until speech recognition is set up, it follows the model: DeepSeek's own ASR when the model is DeepSeek. */
 export function defaultAsrSettings(llm: Settings['llm']): AsrSettings {
-  return llm.provider === 'deepseek' && llm.apiKeys.deepseek?.trim()
+  return llm.provider === 'deepseek' && deepseekCredential(llm)
     ? { ...DEFAULT_ASR_SETTINGS, enabled: true, provider: 'deepseek' }
     : DEFAULT_ASR_SETTINGS;
 }
 
-/** Web search runs on DeepSeek (its own tool, or its Search API for other models), so it needs a DeepSeek key. */
+/** Web search runs on DeepSeek (its own tool, or its Search API for other models), so it needs a DeepSeek key or account. */
 export function searchAvailable(llm: Settings['llm']): boolean {
-  return !!llm.apiKeys.deepseek?.trim();
+  return !!deepseekCredential(llm);
 }
 
 /** Settings after first-time model setup; speech recognition left at its defaults follows the model. */
@@ -78,6 +83,8 @@ export async function loadSettings(): Promise<Settings> {
   // 0.1.0 stored only the custom provider's URL, as `customBaseUrl`.
   const { customBaseUrl, ...llm } = (stored?.llm ?? {}) as Partial<Settings['llm']> & { customBaseUrl?: string };
   if (customBaseUrl && !llm.baseUrls) llm.baseUrls = { custom: customBaseUrl };
+  // Before account login (0.4.0), DeepSeek was always reached with a key.
+  if (!llm.deepseekAuth && llm.apiKeys?.deepseek?.trim()) llm.deepseekAuth = 'key';
   return {
     ...DEFAULT_SETTINGS,
     ...stored,

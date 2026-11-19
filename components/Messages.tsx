@@ -14,6 +14,7 @@ import { IconButton } from './IconButton';
 import { Markdown } from './Markdown';
 import { PresetChip } from './PresetChip';
 import { AnswerTimeline, stepsOf } from './AnswerTimeline';
+import { SignInAgainButton } from './DeepseekAccount';
 import { SourcesPill } from './SearchResults';
 
 export function UserMessage({
@@ -84,6 +85,7 @@ export function AssistantMessage({
           {pages.length > 0 && !streaming && <SourcesPill sources={pages} onOpen={() => onShowSources(pages)} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
           {message.error && <AnswerError error={message.error} detail={message.errorDetail} />}
+          {message.signInAgain && <SignInAgainButton />}
           {!streaming && (
             <div className="mt-3 flex gap-1">
               {text && (

@@ -78,6 +78,8 @@ export type AssistantMessage = {
   error?: string;
   /** The original error behind a friendly `error`, shown on request. */
   errorDetail?: string;
+  /** The error was the DeepSeek account login expiring; offer to sign in again. */
+  signInAgain?: boolean;
   /** The pages `[n]` in the text refers to. */
   sources?: SearchSource[];
   /** The provider's messages for this answer (assistant turns and tool results), replayed as history in later turns. */

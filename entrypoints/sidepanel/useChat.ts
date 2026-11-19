@@ -3,14 +3,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
 import { createCitations } from '@/lib/citations';
-import { describeError, describeServiceError } from '@/lib/errors';
+import { describeError, describeServiceError, ServiceError } from '@/lib/errors';
 import { saveSession, videoKeyOf, type Session } from '@/lib/db';
 import { t } from '@/lib/i18n';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
 import { runAgent } from '@/lib/llm/agent';
 import { PROVIDERS, reasoningOption, resolveModel } from '@/lib/llm/providers';
 import { webSearchTool } from '@/lib/llm/search';
-import { resolveOutputLanguage, searchAvailable, type Settings } from '@/lib/settings';
+import { deepseekCredential } from '@/lib/deepseekAccount';
+import { loadSettings, resolveOutputLanguage, saveSettings, searchAvailable, type Settings } from '@/lib/settings';
 import { getPlaybackTime } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
 import type { AssistantMessage, Message, PresetId, Transcript, VideoRef } from '@/lib/types';
@@ -106,7 +107,7 @@ export function useChat(settings: Settings | undefined) {
     }
     if (controller.signal.aborted) return;
     if (!loaded) {
-      const asr = resolveAsr(settings.asr, settings.llm.apiKeys);
+      const asr = resolveAsr(settings.asr, settings.llm);
       if (!asr) {
         update(id, { status: 'error', error: t('errors.noSubtitles') });
         return;
@@ -120,6 +121,11 @@ export function useChat(settings: Settings | undefined) {
       } catch (error) {
         if (controller.signal.aborted) return;
         const { message, detail } = describeError(error);
+        if (asr.deepseek?.kind === 'account' && error instanceof ServiceError && error.status === 401) {
+          await expireAccount(asr.deepseek.token);
+          update(id, { status: 'error', error: t('errors.accountExpired'), errorDetail: detail, signInAgain: true });
+          return;
+        }
         update(id, { status: 'error', error: t('errors.transcription', { error: message }), errorDetail: detail });
         return;
       }
@@ -151,7 +157,8 @@ export function useChat(settings: Settings | undefined) {
       history,
       prompt: typeof prompt?.content === 'string' ? prompt.content : '',
       serverSearch,
-      tools: search === 'client' ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
+      tools: search === 'client' ? [webSearchTool(deepseekCredential(settings.llm)!)] : [],
+      accountToken: resolved.accountToken,
       onProgress: ({ text, steps, thoughtMs, sources }) =>
         update(id, {
           text,
@@ -169,6 +176,8 @@ export function useChat(settings: Settings | undefined) {
       stopReason === 'error' && (result.httpStatus === undefined || result.httpStatus >= 400)
         ? describeServiceError(providerName(model.provider), { status: result.httpStatus, message: errorText })
         : undefined;
+    const accountExpired = stopReason === 'error' && result.httpStatus === 401 && !!resolved.accountToken;
+    if (accountExpired) await expireAccount(resolved.accountToken!);
     update(id, {
       text: result.text,
       steps: result.steps.length ? result.steps : undefined,
@@ -176,8 +185,14 @@ export function useChat(settings: Settings | undefined) {
       sources: result.sources.length ? result.sources : undefined,
       phase: 'writing',
       status: stopReason === 'aborted' ? 'aborted' : stopReason === 'error' ? 'error' : 'done',
-      error: stopReason === 'error' ? failure?.message ?? (errorText || t('errors.modelError')) : undefined,
+      error:
+        stopReason === 'error'
+          ? accountExpired
+            ? t('errors.accountExpired')
+            : failure?.message ?? (errorText || t('errors.modelError'))
+          : undefined,
       errorDetail: failure?.detail,
+      signInAgain: accountExpired || undefined,
       // Keep partial answers in the history so follow-ups can refer to them.
       llmMessages: result.messages.length ? result.messages : undefined,
     });
@@ -245,4 +260,12 @@ export function useChat(settings: Settings | undefined) {
         .catch(() => {});
     },
   };
+}
+
+/** DeepSeek refused the account's token: forget it, so settings show the login as expired. */
+async function expireAccount(token: string) {
+  const settings = await loadSettings();
+  const account = settings.llm.deepseekAccount;
+  if (account?.token !== token) return;
+  await saveSettings({ ...settings, llm: { ...settings.llm, deepseekAccount: { ...account, token: undefined } } });
 }

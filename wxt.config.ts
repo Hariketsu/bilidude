@@ -28,6 +28,10 @@ export default defineConfig({
       'https://generativelanguage.googleapis.com/*',
       'https://openrouter.ai/*',
       'https://api.deepseek.com/*',
+      // DeepSeek account login and balance (lib/deepseekAccount.ts)
+      'https://platform.deepseek.com/*',
+      // The login's loopback callback, which a DNR rule redirects back to the extension
+      'http://127.0.0.1/*',
       // Built-in ASR providers (lib/asr/providers.ts)
       'https://api.groq.com/*',
       'https://api.siliconflow.cn/*',
@@ -38,5 +42,8 @@ export default defineConfig({
     // Custom OpenAI-compatible endpoints, requested when saved.
     optional_host_permissions: ['https://*/*', 'http://*/*'],
     action: {},
+    // The account login's loopback callback is redirected to this page. `matches` is checked against the page that
+    // starts the navigation: DeepSeek's authorization page.
+    web_accessible_resources: [{ resources: ['account-callback.html'], matches: ['https://platform.deepseek.com/*'] }],
   },
 });

@@ -3,6 +3,7 @@ import { concatFrames } from './aac';
 import { aacToWav } from './wav';
 import { ServiceError, serviceFetch } from '../errors';
 import { t } from '../i18n';
+import { deepseekAuthHeaders, deepseekCredential, type DeepseekCredential } from '../deepseekAccount';
 
 export type AsrProviderId = 'bcut' | 'deepseek' | 'openai' | 'groq' | 'siliconflow' | 'dashscope' | 'custom';
 export type DashscopeRegion = 'cn-beijing' | 'ap-southeast-1';
@@ -64,6 +65,8 @@ export const DEFAULT_ASR_SETTINGS: AsrSettings = {
 export interface AsrConfig {
   provider: ProviderInfo;
   apiKey: string;
+  /** DeepSeek only: how to authenticate (an API key, or the signed-in account). */
+  deepseek?: DeepseekCredential;
   model: string;
   baseUrl: string;
   chunkSeconds: number;
@@ -77,13 +80,15 @@ export function getAsrProvider(id: AsrProviderId): ProviderInfo {
 
 /**
  * The configured provider, or undefined when ASR is off or incomplete. A provider that also
- * serves the chat model (DeepSeek) falls back to the model's key from `llmApiKeys`.
+ * serves the chat model (DeepSeek) falls back to the model's key or signed-in account.
  */
-export function resolveAsr(asr: AsrSettings, llmApiKeys: Partial<Record<string, string>>): AsrConfig | undefined {
+export function resolveAsr(asr: AsrSettings, llm: Parameters<typeof deepseekCredential>[0]): AsrConfig | undefined {
   if (!asr.enabled) return undefined;
   const provider = getAsrProvider(asr.provider);
   const ownKey = asr.apiKeys[provider.id]?.trim();
-  const apiKey = (ownKey || (provider.id === 'deepseek' ? llmApiKeys.deepseek?.trim() : '')) ?? '';
+  const deepseek =
+    provider.id === 'deepseek' ? (ownKey ? ({ kind: 'key', key: ownKey } as const) : deepseekCredential(llm)) : undefined;
+  const apiKey = (deepseek ? (deepseek.kind === 'key' ? deepseek.key : deepseek.token) : ownKey) ?? '';
   const model = asr.models[provider.id]?.trim() || provider.defaultModel;
   const baseUrl = (provider.id === 'custom' ? asr.customBaseUrl : (provider.baseUrl ?? '')).trim().replace(/\/+$/, '');
   if (!provider.free && (!apiKey || (!model && !provider.noModel))) return undefined;
@@ -91,6 +96,7 @@ export function resolveAsr(asr: AsrSettings, llmApiKeys: Partial<Record<string, 
   return {
     provider,
     apiKey,
+    ...(deepseek && { deepseek }),
     model,
     baseUrl,
     chunkSeconds: provider.chunkSeconds,
@@ -161,7 +167,7 @@ async function transcribeDeepseek(config: AsrConfig, chunk: AacChunk, signal?: A
   form.append('file', await aacToWav(chunk.frames), 'audio.wav');
   const response = await serviceFetch(config.provider.name, `${config.baseUrl}/v1/tools/asr`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${config.apiKey}` },
+    headers: deepseekAuthHeaders(config.deepseek ?? { kind: 'key', key: config.apiKey }),
     body: form,
     signal,
   });

@@ -181,6 +181,18 @@ lib/
 - **Prompt**：开启搜索时 system prompt 在字幕之后增加一节（放在字幕后，开关搜索不影响前面已缓存的部分）：只在字幕里的专有名词可疑、或需要视频之外的事实时搜索；网上来的信息要标明不是视频内容；搜索前和搜索之间不要写字（客户端路径各轮文字都会拼进回答）；客户端路径还要求按编号引用。今天的日期放在每轮用户消息末尾，不放 system prompt，以免跨天续聊时整段字幕的缓存失效。
 - **历史**：一次回答可能包含多条 assistant 消息和工具结果，按顺序存在回答的 `llmMessages` 里，追问时原样回放；旧会话的单条 `llm` 读取时兼容。
 
+### 7.2 DeepSeek 账号登录（实验性）
+
+除了 API Key，DeepSeek 也可以用账号登录。用的是 DeepSeek Harness 的登录方式（github.com/deepseek-ai/deepseek-harness，`packages/account`）：没有公开文档，DeepSeek 可能随时调整，所以界面标为「实验性」，失效时提示改用 API Key。实现在 `lib/deepseekAccount.ts`。
+
+- **流程**：PKCE（S256）。`POST platform.deepseek.com/auth-api/v0/dsh/auth_init` 得到授权页，新标签页打开；用户授权后平台跳到 `redirect_uri`，再 `auth_exchange` 换 token。token 没有过期时间，也没有刷新流程；被拒（401 或响应码 40003）就算失效。
+- **回调**：平台只接受本机回环地址（`https://<id>.chromiumapp.org` 返回 `PAYLOAD_SCHEMA_MISMATCH`，所以 `chrome.identity.launchWebAuthFlow` 用不了）。`redirect_uri` 是 `http://127.0.0.1:53682/oauth/callback`，那里没有服务；登录开始时加一条 DNR 会话规则，把这次导航重定向到 `account-callback.html`，由它校验 state、换 token、保存账号后自动关闭。`web_accessible_resources` 的 `matches` 检查的是发起导航的页面，即 DeepSeek 的授权页。进行中的登录（verifier、state）存在 `storage.session`。
+- **鉴权**：账号 token 放在 `x-dsh-auth-token` 请求头，不能当 Bearer key 用（实测 401）。实测（2026-11-20）Chat Completions（含 `deepseek_web_search`）、Messages、Search、ASR、`/models` 都接受它。pi-ai 总会发 `Authorization: Bearer`，所以对话请求在 `runAgent` 的 fetch 包装里换掉；转写和客户端搜索直接带账号请求头。
+- **选择**：设置里「连接方式」二选一（`llm.deepseekAuth`），新用户默认账号；已有 DeepSeek Key 的用户升级后保持 Key。`deepseekCredential()` 优先用选中的方式，缺了就退回另一种；转写和联网搜索也从这里取凭证。
+- **账号信息**：`llm.deepseekAccount` 只存 token 和平台脱敏后的邮箱、手机号（资料接口的响应里带着 token 本身，不能原样保存）。设置里单独一张账号卡片：充值余额、赠金余额、领取赠金（读 `get_unnotified_bonuses`，逐笔 `ack_bonus_notified`，只在用户点击时领取）、充值链接、退出登录（调用平台 logout 作废 token）。
+- **失效**：对话或转写收到 401 时清掉 token、保留脱敏资料，回答下给出「重新登录」，账号卡片显示失效状态。
+- **客户端身份**：平台请求带 DSH 桌面版的五个 `x-client-*` 请求头（版本号照抄 DSH），用户选择的做法。
+
 ## 8. Prompt 与上下文
 
 **结构**（稳定前缀在前，便于 prompt cache 命中）：

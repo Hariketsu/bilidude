@@ -363,6 +363,8 @@ test('connecting DeepSeek in the setup form also sets up transcription', async (
   });
   const { panel } = await openPanel(context, extensionId);
   await panel.getByLabel('Provider').selectOption('deepseek');
+  // DeepSeek offers the account login first.
+  await panel.getByRole('button', { name: 'API key' }).click();
   await panel.getByLabel('API key').fill('sk-test');
   await panel.getByLabel('Model').selectOption('deepseek-flash');
   await panel.getByRole('button', { name: 'Connect' }).click();

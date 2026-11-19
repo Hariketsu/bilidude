@@ -1,19 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { ASR_PROVIDERS, getAsrProvider, resolveAsr, type AsrProviderId, type AsrSettings } from '@/lib/asr/providers';
+import { deepseekCredential } from '@/lib/deepseekAccount';
+import type { Settings } from '@/lib/settings';
 import { HostAccess } from './HostAccess';
+
+type LlmSettings = Settings['llm'];
 import { Group, Hint, Select, Switch, TextInput } from './SettingsUi';
 
 /** Speech recognition for videos without subtitles; every change is reported at once. */
 export function TranscriptionSettings({
   title,
   value,
-  llmApiKeys,
+  llm,
   onChange,
 }: {
   title: string;
   value: AsrSettings;
-  /** DeepSeek transcription can use the model's key. */
-  llmApiKeys: Partial<Record<string, string>>;
+  /** DeepSeek transcription can use the model's key or account. */
+  llm: LlmSettings;
   onChange: (asr: AsrSettings) => void;
 }) {
   const { t } = useTranslation();
@@ -76,8 +80,8 @@ export function TranscriptionSettings({
                 label={t('settings.model.apiKey')}
                 secret
                 placeholder={
-                  provider.id === 'deepseek' && llmApiKeys.deepseek?.trim()
-                    ? t('settings.transcription.sharedKey')
+                  provider.id === 'deepseek' && deepseekCredential(llm)
+                    ? t(deepseekCredential(llm)!.kind === 'account' ? 'settings.transcription.sharedAccount' : 'settings.transcription.sharedKey')
                     : t('settings.model.required')
                 }
                 value={value.apiKeys[provider.id] ?? ''}
@@ -93,7 +97,7 @@ export function TranscriptionSettings({
               )}
             </>
           )}
-          {!resolveAsr(value, llmApiKeys) && <Hint>{t('settings.transcription.incomplete')}</Hint>}
+          {!resolveAsr(value, llm) && <Hint>{t('settings.transcription.incomplete')}</Hint>}
 
           <Select
             label={t('settings.transcription.start')}

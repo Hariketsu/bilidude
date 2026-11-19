@@ -1,4 +1,5 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
+import { deepseekAuthHeaders, type DeepseekCredential } from '../deepseekAccount';
 import { ServiceError, serviceFetch } from '../errors';
 
 const SEARCH_URL = 'https://api.deepseek.com/v1/tools/search';
@@ -27,10 +28,10 @@ interface SearchResult {
 }
 
 /** DeepSeek's Search API: billed per successful request, so one call per query. */
-async function searchWeb(query: string, apiKey: string, signal?: AbortSignal): Promise<SearchResult[]> {
+async function searchWeb(query: string, credential: DeepseekCredential, signal?: AbortSignal): Promise<SearchResult[]> {
   const response = await serviceFetch('DeepSeek', SEARCH_URL, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: { ...deepseekAuthHeaders(credential), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, count: RESULT_COUNT }),
     signal,
   });
@@ -55,7 +56,7 @@ const parameters = {
  * Results are numbered across all searches of one answer, a page found again keeping its number,
  * so the model can cite them as `[n]`.
  */
-export function webSearchTool(apiKey: string): AgentTool<any, SearchSource[]> {
+export function webSearchTool(credential: DeepseekCredential): AgentTool<any, SearchSource[]> {
   const numbers = new Map<string, number>();
   return {
     name: 'web_search',
@@ -64,7 +65,7 @@ export function webSearchTool(apiKey: string): AgentTool<any, SearchSource[]> {
       'Search the web. Use it to check names, terms or facts the transcript may have wrong, or for context the video does not give.',
     parameters,
     async execute(_id, { query }: { query: string }, signal) {
-      const results = await searchWeb(query, apiKey, signal);
+      const results = await searchWeb(query, credential, signal);
       for (const r of results) if (!numbers.has(r.url)) numbers.set(r.url, numbers.size + 1);
       const text = results.length
         ? results
