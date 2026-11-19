@@ -17,6 +17,7 @@
   --bd-bili: #00a1d6;
   --bd-warn: #c2620a;
   --bd-scrollbar: rgb(0 0 0 / 0.15);
+  --bd-hairline: rgb(0 0 0 / 0.18);
 }
 
 :root.dark {
@@ -33,6 +34,7 @@
   --bd-bili: #00a1d6;
   --bd-warn: #f0a356;
   --bd-scrollbar: rgb(255 255 255 / 0.15);
+  --bd-hairline: rgb(255 255 255 / 0.2);
 }
 
 @theme inline {
@@ -145,6 +147,12 @@ body {
   color: transparent;
   width: fit-content;
   animation: shimmer 2s linear infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes shimmer {

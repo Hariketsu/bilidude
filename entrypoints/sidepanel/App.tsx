@@ -7,6 +7,7 @@ import { HistoryPanel } from '@/components/HistoryPanel';
 import { AssistantMessage, UserMessage } from '@/components/Messages';
 import { ModelSetup } from '@/components/ModelSettings';
 import { PresetChip } from '@/components/PresetChip';
+import { SearchResults } from '@/components/SearchResults';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { TopBar } from '@/components/TopBar';
 import { resolveAsr } from '@/lib/asr/providers';
@@ -16,6 +17,7 @@ import { pruneCacheDaily } from '@/lib/cache';
 import { downloadSession } from '@/lib/export';
 import { applyUiLanguage } from '@/lib/i18n';
 import { effectiveThinking, resolveModel, thinkingLevels } from '@/lib/llm/providers';
+import type { SearchSource } from '@/lib/llm/search';
 import { PRESETS } from '@/lib/presets';
 import { downloadSubtitles, type SubtitleFormat } from '@/lib/subtitles';
 import { saveSettings, searchAvailable, useSettings, withFirstModel } from '@/lib/settings';
@@ -40,7 +42,7 @@ export default function App() {
   const identity = active.status === 'none' ? undefined : `${active.tabId}/${active.key}`;
 
   const [preset, setPreset] = useState<PresetId>();
-  const [overlay, setOverlay] = useState<'settings' | 'history'>();
+  const [overlay, setOverlay] = useState<'settings' | 'history' | { sources: SearchSource[] }>();
   const subtitles = useSubtitleStatus(video, settings);
   /** Subtitles waiting on a transcription started from the download menu, or why it failed. */
   const [subtitleJob, setSubtitleJob] = useState<'pending' | { error: string }>();
@@ -202,6 +204,7 @@ export default function App() {
                 exportLinks={settings?.exportLinks ?? true}
                 onSeek={(seconds) => void seekVideo(message.video, seconds)}
                 onRegenerate={() => void chat.regenerate(message.id)}
+                onShowSources={(sources) => setOverlay({ sources })}
               />
             ),
           )}
@@ -258,6 +261,7 @@ export default function App() {
         )}
       </div>
 
+      {typeof overlay === 'object' && <SearchResults sources={overlay.sources} onClose={() => setOverlay(undefined)} />}
       {overlay === 'settings' && settings && <SettingsPanel settings={settings} onClose={() => setOverlay(undefined)} />}
       {overlay === 'history' && settings && (
         <HistoryPanel

@@ -4,15 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
 import { formatAnswer } from '@/lib/export';
-import { citedSources, withSources } from '@/lib/sources';
+import type { SearchSource } from '@/lib/llm/search';
+import { foundPages } from '@/lib/llm/steps';
+import { withSources } from '@/lib/sources';
 import { useTypewriter } from '@/lib/typewriter';
 import type { AssistantMessage as AssistantMsg, SubtitleStatus, UserMessage as UserMsg } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
 import { IconButton } from './IconButton';
 import { Markdown } from './Markdown';
 import { PresetChip } from './PresetChip';
-import { AnswerSources, SearchSteps } from './SearchSteps';
-import { ThinkingSteps, ThoughtSummary } from './ThinkingSteps';
+import { AnswerTimeline, stepsOf } from './AnswerTimeline';
+import { SourcesPill } from './SearchResults';
 
 export function UserMessage({
   message,
@@ -51,6 +53,7 @@ export function AssistantMessage({
   exportLinks,
   onSeek,
   onRegenerate,
+  onShowSources,
 }: {
   message: AssistantMsg;
   citations?: Citations;
@@ -58,6 +61,8 @@ export function AssistantMessage({
   exportLinks: boolean;
   onSeek?: (seconds: number) => void;
   onRegenerate?: () => void;
+  /** Opens a list of web pages over the panel. */
+  onShowSources: (sources: SearchSource[]) => void;
 }) {
   const { t } = useTranslation();
   const shown = useTypewriter(message.text, message.status === 'streaming');
@@ -65,30 +70,15 @@ export function AssistantMessage({
   const streaming = message.status === 'streaming' || shown !== message.text;
   const preparing = message.status === 'streaming' && message.phase !== 'writing';
   const text = streaming ? trimPartialTimestamp(shown) : message.text;
-  const cited = message.sources && !streaming ? citedSources(message.text, message.sources) : [];
+  const pages = foundPages(stepsOf(message));
 
   return (
     <div data-testid="answer" data-status={streaming ? 'streaming' : message.status}>
-      {preparing ? (
-        <ThinkingSteps
-          phase={message.phase ?? 'reading'}
-          video={message.video}
-          asrProgress={message.asrProgress}
-          thinking={message.thinking}
-          searches={message.searches}
-        />
-      ) : (
+      {(preparing || message.thoughtMs !== undefined) && <AnswerTimeline message={message} onShowSources={onShowSources} />}
+      {!preparing && (
         <>
-          {message.thoughtMs !== undefined && (
-            <ThoughtSummary thoughtMs={message.thoughtMs} thinking={message.thinking} />
-          )}
-          {message.searches && (
-            <div className="mt-3 mb-4">
-              <SearchSteps searches={message.searches} />
-            </div>
-          )}
           {text && <Markdown text={text} citations={citations} sources={message.sources} onSeek={onSeek} />}
-          {cited.length > 0 && <AnswerSources cited={cited} />}
+          {pages.length > 0 && !streaming && <SourcesPill sources={pages} onOpen={() => onShowSources(pages)} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
           {message.error && <AnswerError error={message.error} detail={message.errorDetail} />}
           {!streaming && (

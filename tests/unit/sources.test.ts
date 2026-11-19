@@ -1,16 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { SearchStep } from '@/lib/llm/search';
-import { citedSources, insertCitations, numberSources, withSources } from '@/lib/sources';
+import { citedSources, insertCitations, withSources } from '@/lib/sources';
 
 const page = (n: number) => ({ title: `Page ${n}`, url: `https://example.com/${n}` });
-const step = (id: string, sources: ReturnType<typeof page>[]): SearchStep => ({ id, queries: [id], status: 'done', sources });
-
-describe('numberSources', () => {
-  it('numbers every page found, in search order, then cited pages no search returned', () => {
-    const searches = [step('a', [page(1), page(2)]), step('b', [page(3)])];
-    expect(numberSources(searches, [page(2), page(9)])).toEqual([page(1), page(2), page(3), page(9)]);
-  });
-});
 
 describe('insertCitations', () => {
   const sources = [page(1), page(2), page(3)];

@@ -5,7 +5,7 @@ import type { Citations } from '@/lib/citations';
 import type { SearchSource } from '@/lib/llm/search';
 import { remarkCitations } from '@/lib/remark-citations';
 import { remarkTimestamps } from '@/lib/remark-timestamps';
-import { CitationChip } from './SearchSteps';
+import { CitationChip } from './CitationChip';
 import { TimestampChip } from './TimestampChip';
 
 export function Markdown({

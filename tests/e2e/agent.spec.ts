@@ -34,18 +34,23 @@ test('with web search on, a non-DeepSeek model searches through the DeepSeek Sea
   expect(JSON.stringify(requests[1].messages)).toContain('[1] Never Gonna Give You Up');
   expect(JSON.stringify(requests[1].messages)).toContain('A 1987 song.');
   await expect(answer).toContainText('Released in 1987');
-  await expect(answer.getByTestId('search-step')).toContainText('Read 1 web page');
   // The model's [1] is a chip linking to the page.
   await expect(answer.locator('[data-citation="1"]')).toHaveAttribute('href', 'https://example.com/ngguy');
-  await expect(answer.getByTestId('answer-sources')).toContainText('1 web page');
-  // Pages are folded away until asked for.
-  await expect(answer.getByTestId('search-step').getByRole('link')).toHaveCount(0);
+
+  // Once the answer is written, the timeline is folded; unfolded, it shows the search.
+  const timeline = answer.getByTestId('timeline');
+  await expect(timeline).toHaveAttribute('data-open', 'false');
+  await expect(answer.getByTestId('search-step')).toHaveCount(0);
+  await timeline.getByRole('button').first().click();
+  await expect(answer.getByTestId('search-step')).toContainText('Read 1 web page');
+
+  // The search row and the pill under the answer both open the results.
   await answer.getByTestId('search-step').getByRole('button').click();
-  await expect(answer.getByTestId('search-step')).toContainText('Rick Astley 1987');
-  await expect(answer.getByTestId('search-step').getByRole('link', { name: /Never Gonna Give You Up/ })).toHaveAttribute(
-    'href',
-    'https://example.com/ngguy',
-  );
+  await expect(panel.getByTestId('search-results').getByTestId('source-card')).toHaveAttribute('href', 'https://example.com/ngguy');
+  await panel.getByTestId('search-results').getByRole('button', { name: 'Back' }).click();
+  await expect(answer.getByTestId('answer-sources')).toContainText('1 web page');
+  await answer.getByTestId('answer-sources').click();
+  await expect(panel.getByTestId('search-results').getByTestId('source-card')).toHaveCount(1);
 });
 
 test('web search is off by default: no tools are offered', async ({ context, extensionId }) => {
@@ -115,14 +120,45 @@ test('with DeepSeek, web search runs on DeepSeek and its searches and citations 
   expect(requests[0].tools).toContainEqual({ type: 'deepseek_web_search' });
   expect(requests[0].tools.map((tool: any) => tool.function?.name)).not.toContain('web_search');
   await expect(answer).toContainText('1987');
-  await expect(answer.getByTestId('search-step')).toContainText('Read 3 web pages');
-  await answer.getByTestId('search-step').getByRole('button').click();
-  await expect(answer.getByTestId('search-step')).toContainText('When was "Never Gonna Give You Up" by Rick Astley released?');
-  await expect(answer.getByTestId('search-step').getByRole('link')).toHaveCount(3);
   // Where the cited text ends: Wikipedia is the second search result; Baidu Baike wasn't among them, so it comes after.
   await expect(answer.locator('[data-citation]')).toHaveText(['2', '4']);
   await expect(answer.locator('p').first()).toContainText('发行24。');
-  await expect(answer.getByTestId('answer-sources')).toContainText('2 web pages');
-  await answer.getByTestId('answer-sources').getByRole('button').click();
-  await expect(answer.getByTestId('answer-sources').getByRole('link')).toHaveCount(2);
+  // Hovering a citation previews the page.
+  await answer.locator('[data-citation="2"]').hover();
+  await expect(panel.getByTestId('citation-card')).toContainText('Wikipedia');
+
+  await answer.getByTestId('timeline').getByRole('button').first().click();
+  await expect(answer.getByTestId('search-step')).toContainText('Read 3 web pages');
+  // The pill lists every page found, cited or not.
+  await expect(answer.getByTestId('answer-sources')).toContainText('3 web pages');
+  await answer.getByTestId('answer-sources').click();
+  await expect(panel.getByTestId('search-results').getByTestId('source-card')).toHaveCount(3);
+});
+
+test('with thinking on, the searches and page visits sit between the thinking steps', async ({ context, extensionId }) => {
+  const recorded = await readFile('tests/unit/fixtures/deepseek-deep-search.sse', 'utf8');
+  await context.route('https://api.deepseek.com/chat/completions', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/event-stream', body: recorded }),
+  );
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await patchLlmSettings(panel, { thinking: 'high' });
+  await panel.getByRole('button', { name: 'Web search' }).click();
+
+  const answer = await ask(panel, { text: 'Which tower is taller?' });
+  const timeline = answer.getByTestId('timeline');
+  await expect(timeline.getByTestId('timeline-title')).toContainText('Thought for');
+  await timeline.getByRole('button').first().click();
+  const steps = timeline.locator('[data-testid$="-step"]');
+  await expect(steps).toHaveCount(5);
+  expect(await steps.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-testid')))).toEqual([
+    'thinking-step',
+    'search-step',
+    'thinking-step',
+    'open-step',
+    'thinking-step',
+  ]);
+  await expect(timeline.getByTestId('search-step')).toContainText('Found 27 web pages');
+  await expect(timeline.getByTestId('open-step')).toContainText('Read 2 pages');
+  await expect(timeline.getByTestId('open-step').getByRole('link', { name: /Eiffel Tower key stats/ })).toBeVisible();
 });

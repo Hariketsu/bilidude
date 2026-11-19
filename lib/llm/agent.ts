@@ -3,18 +3,19 @@ import type { Api, AssistantMessage, Message, Model, ThinkingLevel } from '@eare
 import { insertCitations, numberSources, type Citation } from '../sources';
 import { DEEPSEEK_SEARCH_TOOL, watchServerTools } from './deepseekServerTools';
 import { streamChat } from './providers';
-import type { SearchSource, SearchStep } from './search';
+import type { SearchSource } from './search';
+import { applyEvent, type AnswerStep, type TimelineEvent } from './steps';
 
 /** Tool rounds per answer; past this, tool calls are refused so the model answers with what it has. */
 const MAX_TOOL_CALLS = 6;
 
 export interface AgentProgress {
   text: string;
-  thinking: string;
+  /** Thinking and tool calls, in order. */
+  steps: AnswerStep[];
   /** When the first answer text arrived, in ms since the start; undefined while still thinking. */
   thoughtMs?: number;
-  searches: SearchStep[];
-  /** The pages `[n]` in the text refers to: all pages found, then cited ones no search returned. */
+  /** The pages `[n]` in the text refers to (see `numberSources`). */
   sources: SearchSource[];
 }
 
@@ -46,15 +47,11 @@ export interface AgentRun {
 /** Answers `prompt`, letting the model call `tools` until it writes its answer. */
 export async function runAgent(run: AgentRun): Promise<AgentResult> {
   const startedAt = Date.now();
-  const state: AgentProgress = { text: '', thinking: '', searches: [], sources: [] };
-  // Searches DeepSeek ran itself, per request; kept apart so later requests don't overwrite earlier ones.
-  const serverSearches: SearchStep[][] = [];
+  const state: AgentProgress = { text: '', steps: [], sources: [] };
   // Citations per request; each request is one assistant turn, and positions count in its text.
   const serverCitations: Citation[][] = [];
-  let clientSearches: SearchStep[] = [];
-  const syncSearches = () => {
-    state.searches = [...serverSearches.flat(), ...clientSearches];
-    state.sources = numberSources(state.searches, serverCitations.flat());
+  const syncSources = () => {
+    state.sources = numberSources(state.steps, serverCitations.flat());
   };
   const produced: Message[] = [];
   let final: AssistantMessage | undefined;
@@ -69,9 +66,9 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
       run.onProgress({ ...state });
     });
   };
-  const setSearch = (id: string, patch: Partial<SearchStep>) => {
-    clientSearches = clientSearches.map((step) => (step.id === id ? { ...step, ...patch } : step));
-    syncSearches();
+  const step = (event: TimelineEvent) => {
+    state.steps = applyEvent(state.steps, event);
+    if (event.type !== 'thinking') syncSources();
     report();
   };
   const pendingTaps: Promise<void>[] = [];
@@ -93,13 +90,12 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
         if (!run.serverSearch || !response.ok || !response.body) return response;
         // One copy for pi-ai, one for the server-side search events it ignores.
         const [forModel, forTools] = response.body.tee();
-        const slot = serverSearches.push([]) - 1;
-        serverCitations.push([]);
+        const citations = serverCitations[serverCitations.push([]) - 1]!;
         pendingTaps.push(
-          watchServerTools(forTools, ({ searches, citations }) => {
-            serverSearches[slot] = searches;
-            serverCitations[slot] = citations;
-            syncSearches();
+          watchServerTools(forTools, (event) => {
+            if (event.type !== 'citation') return step(event);
+            citations.push(event.citation);
+            syncSources();
             report();
           }).catch(() => {}),
         );
@@ -126,12 +122,13 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
         break;
       case 'message_update': {
         const delta = event.assistantMessageEvent;
-        if (delta.type === 'thinking_delta') state.thinking += delta.delta;
-        else if (delta.type === 'text_delta') {
+        // With DeepSeek's search, thinking comes from the server-event copy, in order with the searches.
+        if (delta.type === 'thinking_delta' && !run.serverSearch) step({ type: 'thinking', delta: delta.delta });
+        if (delta.type === 'text_delta') {
           state.thoughtMs ??= Date.now() - startedAt;
           state.text += delta.delta;
-        } else break;
-        report();
+          report();
+        }
         break;
       }
       case 'message_end':
@@ -139,16 +136,12 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
         if (event.message.role === 'assistant' || event.message.role === 'toolResult') produced.push(event.message);
         break;
       case 'tool_execution_start':
-        if (event.toolName === 'web_search') {
-          clientSearches = [...clientSearches, { id: event.toolCallId, queries: [String(event.args?.query ?? '')], status: 'running', sources: [] }];
-          syncSearches();
-          report();
-        }
+        if (event.toolName === 'web_search') step({ type: 'search_start', id: event.toolCallId, queries: [String(event.args?.query ?? '')] });
         break;
       case 'tool_execution_end':
         if (event.toolName === 'web_search') {
           const sources: SearchSource[] = event.isError ? [] : (event.result?.details ?? []);
-          setSearch(event.toolCallId, { status: event.isError ? 'failed' : 'done', sources });
+          step({ type: 'search_end', id: event.toolCallId, failed: event.isError, sources });
         }
         break;
     }

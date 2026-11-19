@@ -84,7 +84,7 @@ export function AnswerProgress({ progress }: { progress: AsrProgress | undefined
   const percent = useAsrPercent(progress);
   const minutes = minutesLeft(progress);
   return (
-    <div data-testid="asr-progress" className="space-y-2 pl-7 text-sm text-fg-muted">
+    <div data-testid="asr-progress" className="space-y-2 text-sm text-fg-muted">
       <div className="flex justify-between gap-3">
         <span>
           {t('answer.noSubtitles')}

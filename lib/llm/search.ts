@@ -10,14 +10,10 @@ export interface SearchSource {
   siteName?: string;
   /** The site's icon, served by DeepSeek. */
   siteIcon?: string;
-}
-
-/** One web search the model ran, as shown among the answer's steps. */
-export interface SearchStep {
-  id: string;
-  queries: string[];
-  status: 'running' | 'done' | 'failed';
-  sources: SearchSource[];
+  /** A short excerpt for display. */
+  snippet?: string;
+  /** RFC 3339, when known. */
+  publishedAt?: string;
 }
 
 interface SearchResult {
@@ -55,11 +51,12 @@ const parameters = {
 } as const;
 
 /**
- * The `web_search` tool for models without a search of their own; `details` carries the step for the UI.
- * Results are numbered across all searches of one answer, so the model can cite them as `[n]`.
+ * The `web_search` tool for models without a search of their own; `details` carries the pages for the UI.
+ * Results are numbered across all searches of one answer, a page found again keeping its number,
+ * so the model can cite them as `[n]`.
  */
 export function webSearchTool(apiKey: string): AgentTool<any, SearchSource[]> {
-  let numbered = 0;
+  const numbers = new Map<string, number>();
   return {
     name: 'web_search',
     label: 'Web search',
@@ -68,16 +65,22 @@ export function webSearchTool(apiKey: string): AgentTool<any, SearchSource[]> {
     parameters,
     async execute(_id, { query }: { query: string }, signal) {
       const results = await searchWeb(query, apiKey, signal);
-      const first = numbered + 1;
-      numbered += results.length;
+      for (const r of results) if (!numbers.has(r.url)) numbers.set(r.url, numbers.size + 1);
       const text = results.length
         ? results
-            .map((r, i) => `[${first + i}] ${r.title}\n${r.url}${r.date ? `\nDate: ${r.date}` : ''}\n${r.summary || r.snippet || ''}`)
+            .map((r) => `[${numbers.get(r.url)}] ${r.title}\n${r.url}${r.date ? `\nDate: ${r.date}` : ''}\n${r.summary || r.snippet || ''}`)
             .join('\n\n')
         : 'No results.';
       return {
         content: [{ type: 'text', text }],
-        details: results.map((r) => ({ title: r.title, url: r.url, siteName: r.site_name ?? undefined, siteIcon: r.site_icon ?? undefined })),
+        details: results.map((r) => ({
+          title: r.title,
+          url: r.url,
+          ...(r.site_name && { siteName: r.site_name }),
+          ...(r.site_icon && { siteIcon: r.site_icon }),
+          ...(r.snippet && { snippet: r.snippet }),
+          ...(r.date && { publishedAt: r.date }),
+        })),
       };
     },
   };

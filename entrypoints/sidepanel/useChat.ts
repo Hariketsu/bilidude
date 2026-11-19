@@ -152,12 +152,11 @@ export function useChat(settings: Settings | undefined) {
       prompt: typeof prompt?.content === 'string' ? prompt.content : '',
       serverSearch,
       tools: search === 'client' ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
-      onProgress: ({ text, thinking, thoughtMs, searches, sources }) =>
+      onProgress: ({ text, steps, thoughtMs, sources }) =>
         update(id, {
           text,
-          thinking: thinking || undefined,
+          steps: steps.length ? steps : undefined,
           thoughtMs,
-          searches: searches.length ? searches : undefined,
           sources: sources.length ? sources : undefined,
           phase: thoughtMs === undefined ? 'thinking' : 'writing',
         }),
@@ -172,9 +171,8 @@ export function useChat(settings: Settings | undefined) {
         : undefined;
     update(id, {
       text: result.text,
-      thinking: result.thinking || undefined,
+      steps: result.steps.length ? result.steps : undefined,
       thoughtMs: result.thoughtMs ?? Date.now() - startedAt,
-      searches: result.searches.length ? result.searches : undefined,
       sources: result.sources.length ? result.sources : undefined,
       phase: 'writing',
       status: stopReason === 'aborted' ? 'aborted' : stopReason === 'error' ? 'error' : 'done',

@@ -1,4 +1,5 @@
-import type { SearchSource, SearchStep } from './llm/search';
+import type { SearchSource } from './llm/search';
+import { foundPages, type AnswerStep } from './llm/steps';
 
 /** A page DeepSeek's server-side search cites; `end` is where the cited text ends, in code points of that turn's text. */
 export interface Citation extends SearchSource {
@@ -9,12 +10,17 @@ export interface Citation extends SearchSource {
 export const CITATION_PATTERN = /\[(\d{1,3})\]/g;
 
 /**
- * The numbered sources of an answer: every page its searches found, in order (the numbers the
- * client `web_search` tool gives the model), then cited pages no search returned.
+ * The numbered sources of an answer, each page once: what its searches found, in order (the
+ * numbers the client `web_search` tool gives the model), then pages it opened, then cited pages
+ * neither returned.
  */
-export function numberSources(searches: SearchStep[], cited: SearchSource[]): SearchSource[] {
-  const sources = searches.flatMap((step) => step.sources);
-  for (const page of cited) if (!sources.some((s) => s.url === page.url)) sources.push(page);
+export function numberSources(steps: AnswerStep[], cited: SearchSource[]): SearchSource[] {
+  const sources = foundPages(steps);
+  const add = (page: SearchSource) => {
+    if (!sources.some((s) => s.url === page.url)) sources.push(page);
+  };
+  for (const step of steps) if (step.type === 'open') step.pages.filter((p) => p.status === 'done').forEach(({ url, title }) => add({ url, title }));
+  cited.forEach(add);
   return sources;
 }
 
@@ -33,7 +39,7 @@ export function insertCitations(text: string, citations: Citation[], sources: Se
   return chars.join('');
 }
 
-export interface CitedSource {
+interface CitedSource {
   n: number;
   source: SearchSource;
 }

@@ -1,5 +1,6 @@
 import type { AssistantMessage as PiAssistantMessage, Message as PiMessage } from '@earendil-works/pi-ai';
-import type { SearchSource, SearchStep } from './llm/search';
+import type { SearchSource } from './llm/search';
+import type { AnswerStep } from './llm/steps';
 import type { AsrProgress } from './asr/transcribe';
 
 export interface VideoRef {
@@ -69,14 +70,15 @@ export type AssistantMessage = {
   /** While transcribing a video without subtitles. */
   asrProgress?: AsrProgress;
   text: string;
+  /** Thinking and tool calls before the answer, in order. */
+  steps?: AnswerStep[];
+  /** Sessions before 0.4.0 stored the whole thinking here; read it as one thinking step. */
   thinking?: string;
   thoughtMs?: number;
   error?: string;
   /** The original error behind a friendly `error`, shown on request. */
   errorDetail?: string;
-  /** Web searches made while answering, in order. */
-  searches?: SearchStep[];
-  /** Pages the answer cites (DeepSeek's server-side search). */
+  /** The pages `[n]` in the text refers to. */
   sources?: SearchSource[];
   /** The provider's messages for this answer (assistant turns and tool results), replayed as history in later turns. */
   llmMessages?: PiMessage[];

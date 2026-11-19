@@ -1,70 +1,89 @@
 import type { Citation } from '../sources';
-import type { SearchStep } from './search';
+import type { SearchSource } from './search';
+import type { TimelineEvent } from './steps';
 
 /**
  * DeepSeek's server-side web search (`deepseek_web_search`) in Chat Completions. pi-ai parses the
- * answer and ignores these extension fields, so a copy of the response stream is read here:
- * `server_tool_event` on each choice reports calls starting and finishing, and the last delta
- * carries `annotations` (the cited pages).
+ * answer and ignores these extension fields, so a copy of the response stream is read here. The
+ * thinking is read from this copy too, so it stays in order with the searches between its steps.
+ * `server_tool_event` on each choice reports calls starting and finishing; the last delta carries
+ * `annotations` (the cited pages).
  */
 export const DEEPSEEK_SEARCH_TOOL = { type: 'deepseek_web_search' } as const;
 
-export interface ServerToolUpdate {
-  searches: SearchStep[];
-  /** Pages the answer cites, in order. */
-  citations: Citation[];
+export type ServerEvent = TimelineEvent | { type: 'citation'; citation: Citation };
+
+interface ServerSource {
+  url: string;
+  title?: string | null;
+  snippet?: string | null;
+  site_name?: string | null;
+  site_icon?: string | null;
+  published_at?: string | null;
 }
 
 interface ServerCall {
   id: string;
-  type?: string;
-  action?: { type: string; queries?: string[]; url?: string };
+  kind?: string;
+  action?: { type: string; queries?: string[]; url?: string; pattern?: string };
   status?: 'completed' | 'failed';
-  sources?: { url: string; title?: string; site_name?: string | null; site_icon?: string | null }[];
-  page?: { url: string; title?: string };
+  sources?: ServerSource[];
+  page?: { url: string; title?: string | null };
 }
 
 interface Choice {
   server_tool_event?: { type: string; call?: ServerCall };
-  delta?: { annotations?: { type: string; url_citation?: { url: string; title?: string; end_index?: number } }[] };
+  delta?: {
+    reasoning_content?: string | null;
+    annotations?: { type: string; url_citation?: { url: string; title?: string; end_index?: number } }[];
+  };
 }
 
-/** Reads `body` to the end, calling `onUpdate` whenever the searches or citations change. */
-export async function watchServerTools(
-  body: ReadableStream<Uint8Array>,
-  onUpdate: (update: ServerToolUpdate) => void,
-): Promise<void> {
-  const state: ServerToolUpdate = { searches: [], citations: [] };
+const toSource = (s: ServerSource): SearchSource => ({
+  title: s.title || s.url,
+  url: s.url,
+  siteName: s.site_name ?? undefined,
+  siteIcon: s.site_icon ?? undefined,
+  snippet: s.snippet ?? undefined,
+  publishedAt: s.published_at ?? undefined,
+});
+
+/** Reads `body` to the end, reporting thinking, tool calls and citations in stream order. */
+export async function watchServerTools(body: ReadableStream<Uint8Array>, onEvent: (event: ServerEvent) => void): Promise<void> {
+  // `call_completed` doesn't repeat the action, so remember what each call was.
+  const actions = new Map<string, string>();
   const decoder = new TextDecoder();
   const reader = body.getReader();
   let buffer = '';
 
   const handle = (choice: Choice) => {
+    if (choice.delta?.reasoning_content) onEvent({ type: 'thinking', delta: choice.delta.reasoning_content });
+
     const event = choice.server_tool_event;
     const call = event?.call;
-    let changed = false;
-    if (event?.type === 'call_started' && call?.action?.type === 'search') {
-      state.searches = [...state.searches, { id: call.id, queries: call.action.queries ?? [], status: 'running', sources: [] }];
-      changed = true;
+    if (event?.type === 'call_started' && call?.action) {
+      const { action } = call;
+      actions.set(call.id, action.type);
+      if (action.type === 'search') {
+        onEvent({ type: 'search_start', id: call.id, queries: action.queries ?? [], ...(call.kind === 'deep_search' && { deep: true }) });
+      } else if (action.type === 'open_page') {
+        onEvent({ type: 'open_start', id: call.id, url: action.url ?? '' });
+      } else if (action.type === 'find_in_page') {
+        onEvent({ type: 'find_start', id: call.id, pattern: action.pattern ?? '' });
+      }
     } else if (event?.type === 'call_completed' && call) {
-      const sources = (call.sources ?? []).map((s) => ({
-        title: s.title ?? s.url,
-        url: s.url,
-        siteName: s.site_name ?? undefined,
-        siteIcon: s.site_icon ?? undefined,
-      }));
-      const status = call.status === 'failed' ? 'failed' : 'done';
-      const known = state.searches.some((step) => step.id === call.id);
-      state.searches = state.searches.map((step) => (step.id === call.id ? { ...step, status, sources } : step));
-      changed = known;
+      const failed = call.status === 'failed';
+      const action = actions.get(call.id);
+      if (action === 'search') onEvent({ type: 'search_end', id: call.id, failed, sources: (call.sources ?? []).map(toSource) });
+      else if (action === 'open_page') {
+        onEvent({ type: 'open_end', id: call.id, failed, url: call.page?.url, title: call.page?.title ?? undefined });
+      } else if (action === 'find_in_page') onEvent({ type: 'find_end', id: call.id, failed });
     }
-    const annotations = choice.delta?.annotations ?? [];
-    for (const { url_citation: citation } of annotations) {
+
+    for (const { url_citation: citation } of choice.delta?.annotations ?? []) {
       if (!citation || citation.end_index === undefined) continue;
-      state.citations = [...state.citations, { title: citation.title ?? citation.url, url: citation.url, end: citation.end_index }];
-      changed = true;
+      onEvent({ type: 'citation', citation: { title: citation.title ?? citation.url, url: citation.url, end: citation.end_index } });
     }
-    if (changed) onUpdate({ searches: state.searches, citations: state.citations });
   };
 
   for (;;) {
