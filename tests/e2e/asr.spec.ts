@@ -321,7 +321,6 @@ test('DeepSeek: uploads WAV in chunks of at most a minute, estimating times', as
   test.setTimeout(90_000);
   const requests = await mockLlm(context, 'A song. [00:20]');
   const uploads: { auth: string | null; wav: boolean }[] = [];
-  // Registered after mockLlm, so it takes precedence for this path.
   await context.route('https://api.deepseek.com/v1/tools/asr', (route) => {
     const body = route.request().postDataBuffer()?.toString('latin1') ?? '';
     uploads.push({ auth: route.request().headers().authorization ?? null, wav: body.includes('RIFF') && body.includes('WAVE') });

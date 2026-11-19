@@ -146,7 +146,7 @@ export async function mockLlm(context: BrowserContext, answer: string) {
   const requests: any[] = [];
   const chunk = (delta: object, finish: string | null = null) =>
     `data: ${JSON.stringify({ id: 'x', object: 'chat.completion.chunk', created: 0, model: MOCK_LLM.model, choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
-  await context.route('https://api.deepseek.com/**', (route) => {
+  await context.route('https://api.deepseek.com/chat/completions', (route) => {
     requests.push(route.request().postDataJSON());
     let body = chunk({ reasoning_content: 'Reading the transcript first.' });
     for (let i = 0; i < answer.length; i += 40) body += chunk({ content: answer.slice(i, i + 40) });
