@@ -1,5 +1,6 @@
 import { agentLoop, type AgentTool } from '@earendil-works/pi-agent-core';
 import type { Api, AssistantMessage, Message, Model, ThinkingLevel } from '@earendil-works/pi-ai';
+import { DEEPSEEK_SEARCH_TOOL, watchServerTools } from './deepseekServerTools';
 import { streamChat } from './providers';
 import type { SearchSource, SearchStep } from './search';
 
@@ -12,6 +13,8 @@ export interface AgentProgress {
   /** When the first answer text arrived, in ms since the start; undefined while still thinking. */
   thoughtMs?: number;
   searches: SearchStep[];
+  /** Pages cited by a server-side search. */
+  citations: SearchSource[];
 }
 
 export interface AgentResult extends AgentProgress {
@@ -33,6 +36,8 @@ export interface AgentRun {
   history: Message[];
   prompt: string;
   tools: AgentTool<any>[];
+  /** Turn on DeepSeek's server-side web search (DeepSeek models only). */
+  serverSearch?: boolean;
   /** Called with the latest state, at most once per animation frame. */
   onProgress: (progress: AgentProgress) => void;
 }
@@ -40,7 +45,13 @@ export interface AgentRun {
 /** Answers `prompt`, letting the model call `tools` until it writes its answer. */
 export async function runAgent(run: AgentRun): Promise<AgentResult> {
   const startedAt = Date.now();
-  const state: AgentProgress = { text: '', thinking: '', searches: [] };
+  const state: AgentProgress = { text: '', thinking: '', searches: [], citations: [] };
+  // Searches DeepSeek ran itself, per request; kept apart so later requests don't overwrite earlier ones.
+  const serverSearches: SearchStep[][] = [];
+  let clientSearches: SearchStep[] = [];
+  const syncSearches = () => {
+    state.searches = [...serverSearches.flat(), ...clientSearches];
+  };
   const produced: Message[] = [];
   let final: AssistantMessage | undefined;
   let httpStatus: number | undefined;
@@ -51,13 +62,15 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
   const report = () => {
     frame ??= requestAnimationFrame(() => {
       frame = undefined;
-      run.onProgress({ ...state, searches: [...state.searches] });
+      run.onProgress({ ...state });
     });
   };
   const setSearch = (id: string, patch: Partial<SearchStep>) => {
-    state.searches = state.searches.map((step) => (step.id === id ? { ...step, ...patch } : step));
+    clientSearches = clientSearches.map((step) => (step.id === id ? { ...step, ...patch } : step));
+    syncSearches();
     report();
   };
+  const pendingTaps: Promise<void>[] = [];
 
   const stream = agentLoop(
     [{ role: 'user', content: run.prompt, timestamp: Date.now() }],
@@ -73,8 +86,26 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
       fetch: async (input, init) => {
         const response = await fetch(input, init);
         httpStatus = response.status;
-        return response;
+        if (!run.serverSearch || !response.ok || !response.body) return response;
+        // One copy for pi-ai, one for the server-side search events it ignores.
+        const [forModel, forTools] = response.body.tee();
+        const slot = serverSearches.push([]) - 1;
+        pendingTaps.push(
+          watchServerTools(forTools, ({ searches, citations }) => {
+            serverSearches[slot] = searches;
+            syncSearches();
+            state.citations = [...state.citations, ...citations.filter((c) => !state.citations.some((k) => k.url === c.url))];
+            report();
+          }).catch(() => {}),
+        );
+        return new Response(forModel, { status: response.status, statusText: response.statusText, headers: response.headers });
       },
+      onPayload: run.serverSearch
+        ? (payload) => {
+            const body = payload as { tools?: unknown[] };
+            return { ...body, tools: [...(body.tools ?? []), DEEPSEEK_SEARCH_TOOL] };
+          }
+        : undefined,
       beforeToolCall: async () =>
         ++toolCalls > MAX_TOOL_CALLS ? { block: true, reason: 'Tool limit reached. Answer with what you have.' } : undefined,
     },
@@ -104,7 +135,8 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
         break;
       case 'tool_execution_start':
         if (event.toolName === 'web_search') {
-          state.searches = [...state.searches, { id: event.toolCallId, queries: [String(event.args?.query ?? '')], status: 'running', sources: [] }];
+          clientSearches = [...clientSearches, { id: event.toolCallId, queries: [String(event.args?.query ?? '')], status: 'running', sources: [] }];
+          syncSearches();
           report();
         }
         break;
@@ -116,6 +148,7 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
         break;
     }
   }
+  await Promise.all(pendingTaps);
   if (frame !== undefined) cancelAnimationFrame(frame);
 
   // Replay up to the last turn with text: earlier tool calls are followed by their results.

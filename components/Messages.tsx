@@ -10,7 +10,7 @@ import { AttachmentCard } from './AttachmentCard';
 import { IconButton } from './IconButton';
 import { Markdown } from './Markdown';
 import { PresetChip } from './PresetChip';
-import { SearchSteps } from './SearchSteps';
+import { AnswerSources, SearchSteps } from './SearchSteps';
 import { ThinkingSteps, ThoughtSummary } from './ThinkingSteps';
 
 export function UserMessage({
@@ -86,6 +86,7 @@ export function AssistantMessage({
             </div>
           )}
           {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
+          {message.sources && !streaming && <AnswerSources sources={message.sources} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
           {message.error && <AnswerError error={message.error} detail={message.errorDetail} />}
           {!streaming && (

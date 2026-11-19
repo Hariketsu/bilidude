@@ -147,13 +147,16 @@ export function useChat(settings: Settings | undefined) {
       systemPrompt,
       history,
       prompt: typeof prompt?.content === 'string' ? prompt.content : '',
-      tools: webSearch ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
-      onProgress: ({ text, thinking, thoughtMs, searches }) =>
+      // DeepSeek searches on its side, free of charge; other models call the Search API through a tool.
+      serverSearch: webSearch && model.provider === 'deepseek',
+      tools: webSearch && model.provider !== 'deepseek' ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
+      onProgress: ({ text, thinking, thoughtMs, searches, citations }) =>
         update(id, {
           text,
           thinking: thinking || undefined,
           thoughtMs,
           searches: searches.length ? searches : undefined,
+          sources: citations.length ? citations : undefined,
           phase: thoughtMs === undefined ? 'thinking' : 'writing',
         }),
     });
@@ -170,6 +173,7 @@ export function useChat(settings: Settings | undefined) {
       thinking: result.thinking || undefined,
       thoughtMs: result.thoughtMs ?? Date.now() - startedAt,
       searches: result.searches.length ? result.searches : undefined,
+      sources: result.citations.length ? result.citations : undefined,
       phase: 'writing',
       status: stopReason === 'aborted' ? 'aborted' : stopReason === 'error' ? 'error' : 'done',
       error: stopReason === 'error' ? failure?.message ?? (errorText || t('errors.modelError')) : undefined,

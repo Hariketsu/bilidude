@@ -44,10 +44,13 @@ const zhCN: Messages = {
     },
   },
   answer: {
+    sources: '来源',
     search: {
       running: '正在搜索“{{query}}”',
       done: '已搜索“{{query}}”',
       failed: '搜索失败：“{{query}}”',
+      results_one: '{{count}} 条结果',
+      results_other: '{{count}} 条结果',
     },
     errorDetails: '详情',
     thinking: '思考中…',

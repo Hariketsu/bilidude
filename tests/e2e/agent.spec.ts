@@ -1,5 +1,6 @@
 // The agent loop and web search; models and the search API are mocked.
-import { ask, configure, expect, mockChatTurns, mockSubtitles, openPanel, patchLlmSettings, test } from './fixtures';
+import { readFile } from 'node:fs/promises';
+import { ask, configure, expect, MOCK_LLM, mockChatTurns, mockSubtitles, openPanel, patchLlmSettings, test } from './fixtures';
 
 const OPENROUTER = { provider: 'openrouter', apiKey: 'sk-or', model: 'vendor/some-model' };
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -33,6 +34,10 @@ test('with web search on, a non-DeepSeek model searches through the DeepSeek Sea
   expect(JSON.stringify(requests[1].messages)).toContain('A 1987 song.');
   await expect(answer).toContainText('Released in 1987.');
   await expect(answer.getByTestId('search-step')).toContainText('Rick Astley 1987');
+  await expect(answer.getByTestId('search-step')).toContainText('1 result');
+  // Sources are folded away until asked for.
+  await expect(answer.getByRole('link', { name: 'Never Gonna Give You Up' })).toHaveCount(0);
+  await answer.getByTestId('search-step').getByRole('button').click();
   await expect(answer.getByRole('link', { name: 'Never Gonna Give You Up' })).toHaveAttribute('href', 'https://example.com/ngguy');
 });
 
@@ -74,4 +79,25 @@ test('a follow-up replays the earlier search', async ({ context, extensionId }) 
   const replayed = JSON.stringify(requests[2].messages);
   expect(replayed).toContain('English singer.');
   expect(replayed).toContain('He is a singer.');
+});
+
+test('with DeepSeek, web search runs on DeepSeek and its searches and citations are shown', async ({ context, extensionId }) => {
+  const recorded = await readFile('tests/unit/fixtures/deepseek-server-search.sse', 'utf8');
+  const requests: any[] = [];
+  await context.route('https://api.deepseek.com/chat/completions', (route) => {
+    requests.push(route.request().postDataJSON());
+    return route.fulfill({ status: 200, contentType: 'text/event-stream', body: recorded });
+  });
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await panel.getByRole('button', { name: 'Web search' }).click();
+
+  const answer = await ask(panel, { text: 'When was this released?' });
+  expect(requests[0].tools).toContainEqual({ type: 'deepseek_web_search' });
+  expect(requests[0].tools.map((tool: any) => tool.function?.name)).not.toContain('web_search');
+  await expect(answer).toContainText('1987');
+  await expect(answer.getByTestId('search-step')).toContainText('When was "Never Gonna Give You Up" by Rick Astley released?');
+  await answer.getByTestId('search-step').getByRole('button').click();
+  await expect(answer.getByTestId('search-step').getByRole('link')).toHaveCount(3);
+  await expect(answer.getByTestId('answer-sources').getByRole('link')).toHaveCount(2);
 });

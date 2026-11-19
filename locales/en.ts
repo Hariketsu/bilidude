@@ -43,10 +43,13 @@ const en = {
     },
   },
   answer: {
+    sources: 'Sources',
     search: {
       running: 'Searching “{{query}}”',
       done: 'Searched “{{query}}”',
       failed: 'Search failed: “{{query}}”',
+      results_one: '{{count}} result',
+      results_other: '{{count}} results',
     },
     errorDetails: 'Details',
     thinking: 'Thinking…',

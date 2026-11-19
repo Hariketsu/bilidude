@@ -1,5 +1,5 @@
 import type { AssistantMessage as PiAssistantMessage, Message as PiMessage } from '@earendil-works/pi-ai';
-import type { SearchStep } from './llm/search';
+import type { SearchSource, SearchStep } from './llm/search';
 import type { AsrProgress } from './asr/transcribe';
 
 export interface VideoRef {
@@ -76,6 +76,8 @@ export type AssistantMessage = {
   errorDetail?: string;
   /** Web searches made while answering, in order. */
   searches?: SearchStep[];
+  /** Pages the answer cites (DeepSeek's server-side search). */
+  sources?: SearchSource[];
   /** The provider's messages for this answer (assistant turns and tool results), replayed as history in later turns. */
   llmMessages?: PiMessage[];
   /** Sessions before 0.4.0 stored the single assistant message here. */

@@ -44,10 +44,13 @@ const zhTW: Messages = {
     },
   },
   answer: {
+    sources: '來源',
     search: {
       running: '正在搜尋「{{query}}」',
       done: '已搜尋「{{query}}」',
       failed: '搜尋失敗：「{{query}}」',
+      results_one: '{{count}} 筆結果',
+      results_other: '{{count}} 筆結果',
     },
     errorDetails: '詳情',
     thinking: '思考中…',
