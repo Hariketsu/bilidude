@@ -9,11 +9,11 @@ export async function downloadAudio(
   onProgress?: (loaded: number, total: number) => void,
 ): Promise<AacTrack> {
   const urls = await fetchAudioUrls(video.bvid, video.cid);
-  let lastError: unknown;
+  const failures: string[] = [];
   for (const url of urls) {
     try {
       const response = await fetch(url, { signal });
-      if (!response.ok || !response.body) throw new Error(`Audio download failed: HTTP ${response.status}`);
+      if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
       const total = Number(response.headers.get('content-length')) || 0;
       const parts: Uint8Array[] = [];
       let loaded = 0;
@@ -34,8 +34,9 @@ export async function downloadAudio(
       return extractAac(bytes);
     } catch (error) {
       if (signal.aborted) throw error;
-      lastError = error;
+      // Every CDN's result goes in the message: the last one alone hides why the main CDN failed.
+      failures.push(`${new URL(url).host}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  throw lastError;
+  throw new Error(`Audio download failed (${failures.join('; ')})`);
 }

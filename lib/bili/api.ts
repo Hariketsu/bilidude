@@ -123,7 +123,20 @@ export async function fetchAudioUrls(bvid: string, cid: number): Promise<string[
   if (tracks.length === 0) throw new BiliApiError(t('errors.noAudioTrack'));
   const track = tracks.reduce((a, b) => (b.bandwidth < a.bandwidth ? b : a));
   const urls: string[] = [track.baseUrl ?? track.base_url, ...(track.backupUrl ?? track.backup_url ?? [])].filter(Boolean);
+  const candidates = urls.map((url) => toMainCdn(new URL(absoluteUrl(url))).href);
   // Main CDN (*.bilivideo.com) before peer CDN nodes (mcdn, odd ports), which fail more often.
   const rank = (url: string) => (new URL(url).hostname.endsWith('.bilivideo.com') ? 0 : 1);
-  return urls.map(absoluteUrl).sort((a, b) => rank(a) - rank(b));
+  return [...new Set(candidates)].sort((a, b) => rank(a) - rank(b));
+}
+
+/**
+ * Peer CDN nodes come and go under new domains (*.mountaintoys.cn, *.solseed.cn), which our host
+ * permissions and Referer rule don't cover, so they answer 403. Their signed /upgcxcode/ path is
+ * valid on Bilibili's own upos hosts too, so those requests are moved there.
+ */
+function toMainCdn(url: URL): URL {
+  if (url.hostname.endsWith('.bilivideo.com') || !url.pathname.startsWith('/upgcxcode/')) return url;
+  url.hostname = 'upos-sz-mirrorcos.bilivideo.com';
+  url.port = '';
+  return url;
 }
