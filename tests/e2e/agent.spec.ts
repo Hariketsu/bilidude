@@ -67,6 +67,18 @@ test('without a DeepSeek key there is no web search', async ({ context, extensio
   await expect(panel.getByRole('button', { name: 'Web search' })).toHaveCount(0);
 });
 
+test('a DeepSeek key for search alone can be entered in settings', async ({ context, extensionId }) => {
+  await mockChatTurns(context, CHAT_URL, [{ text: 'An answer.' }]);
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, OPENROUTER);
+  await expect(panel.getByRole('button', { name: 'Web search' })).toHaveCount(0);
+
+  await panel.getByRole('button', { name: 'Settings' }).click();
+  await panel.getByLabel('DeepSeek API key').fill('sk-ds');
+  await panel.getByRole('button', { name: 'Back' }).click();
+  await expect(panel.getByRole('button', { name: 'Web search' })).toBeVisible();
+});
+
 test('a follow-up replays the earlier search', async ({ context, extensionId }) => {
   const requests = await mockChatTurns(context, CHAT_URL, [
     { toolCall: { name: 'web_search', arguments: { query: 'Rick Astley' } } },

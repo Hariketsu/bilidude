@@ -191,6 +191,14 @@ const zhCN: Messages = {
         open: '打开视频时',
       },
     },
+    webSearch: {
+      title: '联网搜索',
+      apiKey: 'DeepSeek API Key',
+      optional: '联网搜索需要',
+      sharedKey: '使用模型的 DeepSeek Key。',
+      deepseekNote: '由 DeepSeek 在服务端搜索，只按模型用量计费。在输入框旁的地球图标打开搜索。',
+      apiNote: '其他模型通过 DeepSeek 的 Search API 搜索，由 DeepSeek 按每 1000 次 5 元计费。在输入框旁的地球图标打开搜索。',
+    },
     storage: {
       title: '存储',
       policy: '清理字幕缓存',

@@ -9,6 +9,7 @@ import { ModelSettings } from './ModelSettings';
 import { Group, Hint, Row, Select, Switch } from './SettingsUi';
 import { StorageSettings } from './StorageSettings';
 import { TranscriptionSettings } from './TranscriptionSettings';
+import { WebSearchSettings } from './WebSearchSettings';
 
 /** Answer languages, each named in itself. */
 const ANSWER_LANGUAGES = [
@@ -52,6 +53,8 @@ export function SettingsPanel({ settings, onClose }: { settings: Settings; onClo
           llmApiKeys={current.llm.apiKeys}
           onChange={(asr) => update({ asr })}
         />
+
+        <WebSearchSettings value={current.llm} onChange={(llm) => update({ llm })} />
 
         <Group title={t('settings.general.title')}>
           <Select

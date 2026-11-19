@@ -191,6 +191,14 @@ const zhTW: Messages = {
         open: '開啟影片時',
       },
     },
+    webSearch: {
+      title: '聯網搜尋',
+      apiKey: 'DeepSeek API Key',
+      optional: '聯網搜尋需要',
+      sharedKey: '使用模型的 DeepSeek Key。',
+      deepseekNote: '由 DeepSeek 在伺服器端搜尋，只依模型用量計費。在輸入框旁的地球圖示開啟搜尋。',
+      apiNote: '其他模型透過 DeepSeek 的 Search API 搜尋，由 DeepSeek 按每 1000 次 5 元人民幣計費。在輸入框旁的地球圖示開啟搜尋。',
+    },
     storage: {
       title: '儲存空間',
       policy: '清理字幕快取',

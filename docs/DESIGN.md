@@ -171,7 +171,7 @@ lib/
 
 回答由 pi-agent-core 的 `agentLoop()` 驱动：模型可以调用工具，工具结果交回后继续，直到给出回答。只用它无状态的循环函数；会话、存储和界面状态仍归 `useChat`。第一版只有联网搜索，其余工具（读网页、评论弹幕、截取画面）见 `TODO.md`。
 
-- **开关**：输入框旁、思考强度旁的「联网搜索」按钮，默认关，状态存 `llm.webSearch`。没有可用的 DeepSeek Key 时不显示。搜索会变慢，客户端搜索还按次计费，所以交给用户决定。
+- **开关**：输入框旁、思考强度旁的「联网搜索」按钮，默认关，状态存 `llm.webSearch`。没有可用的 DeepSeek Key 时不显示。搜索会变慢，客户端搜索还按次计费，所以交给用户决定。模型不是 DeepSeek 时，Key 填在设置的「联网搜索」组里，写入同一个 `llm.apiKeys.deepseek`。
 - **两条路径**：
   - **模型是 DeepSeek**：用服务端工具 `deepseek_web_search`，搜索由 DeepSeek 完成，不另计费。pi-ai 不认识服务端工具，所以通过 `onPayload` 把它加进请求的 `tools`；响应流由传给 pi-ai 的 `fetch` 包装 `tee()` 成两份，一份照常交给 pi-ai（正文、思考、自有工具调用），另一份由 `lib/llm/deepseekServerTools.ts` 解析 `server_tool_event`（搜索词、来源）和最后的 `annotations`（引用）。下一轮不回传 `server_tool_calls`：文档说明请求照常执行，只是读过的网页不再进上下文。实测（2026-11-19）服务端工具与自定义 function tool 可在同一请求里混用，`deepseek-flash` 与 `deepseek-v4-pro` 都支持。
   - **其他模型**：客户端工具 `web_search`，调用 DeepSeek Search API（`POST /v1/tools/search`，5 元 / 1000 次成功请求），用设置里的 DeepSeek Key。结果的标题、链接、长摘要交给模型，一次回答内的所有结果连续编号 `[1]`…，模型按编号引用。

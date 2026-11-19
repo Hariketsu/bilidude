@@ -191,6 +191,14 @@ const en = {
         open: 'When the video opens',
       },
     },
+    webSearch: {
+      title: 'Web search',
+      apiKey: 'DeepSeek API key',
+      optional: 'Needed for web search',
+      sharedKey: "Uses the model's DeepSeek key.",
+      deepseekNote: "DeepSeek searches on its own side; only the model's tokens are billed. Turn search on with the globe next to the question box.",
+      apiNote: "Other models search through DeepSeek's Search API, billed by DeepSeek at ¥5 per 1,000 searches. Turn search on with the globe next to the question box.",
+    },
     storage: {
       title: 'Storage',
       policy: 'Delete cached subtitles',
