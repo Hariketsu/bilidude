@@ -20,6 +20,8 @@ export interface Settings {
     openaiApi: 'responses' | 'completions';
     /** Preferred reasoning effort; each request clamps it to what the model supports. */
     thinking: ModelThinkingLevel;
+    /** Let the model search the web (DeepSeek's search, so it needs a DeepSeek key). */
+    webSearch: boolean;
   };
   /** Interface language; `auto` follows the browser. */
   uiLanguage: UiLanguageSetting;
@@ -40,7 +42,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   // Thinking off: recaps come back in seconds instead of after a long reasoning pass.
-  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, openaiApi: 'responses', thinking: 'off' },
+  llm: { provider: 'deepseek', models: {}, apiKeys: {}, baseUrls: {}, openaiApi: 'responses', thinking: 'off', webSearch: false },
   uiLanguage: 'auto',
   outputLanguage: 'auto',
   theme: 'system',
@@ -58,6 +60,11 @@ export function defaultAsrSettings(llm: Settings['llm']): AsrSettings {
   return llm.provider === 'deepseek' && llm.apiKeys.deepseek?.trim()
     ? { ...DEFAULT_ASR_SETTINGS, enabled: true, provider: 'deepseek' }
     : DEFAULT_ASR_SETTINGS;
+}
+
+/** Web search runs on DeepSeek (its own tool, or its Search API for other models), so it needs a DeepSeek key. */
+export function searchAvailable(llm: Settings['llm']): boolean {
+  return !!llm.apiKeys.deepseek?.trim();
 }
 
 /** Settings after first-time model setup; speech recognition left at its defaults follows the model. */

@@ -24,6 +24,7 @@ const zhCN: Messages = {
     quotes: '金句',
   },
   composer: {
+    webSearch: '联网搜索',
     askAboutVideo: '就这个视频提问…',
     askAnother: '继续提问…',
     removePreset: '移除预设',
@@ -43,6 +44,11 @@ const zhCN: Messages = {
     },
   },
   answer: {
+    search: {
+      running: '正在搜索“{{query}}”',
+      done: '已搜索“{{query}}”',
+      failed: '搜索失败：“{{query}}”',
+    },
     errorDetails: '详情',
     thinking: '思考中…',
     transcribing: '转写中…',

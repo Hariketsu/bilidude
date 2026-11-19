@@ -1,4 +1,4 @@
-import type { Context, Message as PiMessage } from '@earendil-works/pi-ai';
+import type { Message as PiMessage } from '@earendil-works/pi-ai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
@@ -7,8 +7,10 @@ import { describeError, describeServiceError } from '@/lib/errors';
 import { saveSession, videoKeyOf, type Session } from '@/lib/db';
 import { t } from '@/lib/i18n';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
-import { PROVIDERS, reasoningOption, resolveModel, streamChat } from '@/lib/llm/providers';
-import { resolveOutputLanguage, type Settings } from '@/lib/settings';
+import { runAgent } from '@/lib/llm/agent';
+import { PROVIDERS, reasoningOption, resolveModel } from '@/lib/llm/providers';
+import { webSearchTool } from '@/lib/llm/search';
+import { resolveOutputLanguage, searchAvailable, type Settings } from '@/lib/settings';
 import { getPlaybackTime } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
 import type { AssistantMessage, Message, PresetId, Transcript, VideoRef } from '@/lib/types';
@@ -18,16 +20,20 @@ const RESERVED_TOKENS = 16_000;
 /** A streaming answer is persisted at most this often; finished states are saved at once. */
 const STREAMING_SAVE_DELAY_MS = 500;
 
+function replayOf(message: AssistantMessage): PiMessage[] {
+  return message.llmMessages ?? (message.llm ? [message.llm] : []);
+}
+
 /** Earlier turns as model input; failed answers and the questions behind them are left out. */
 function toHistory(messages: Message[]): PiMessage[] {
   const history: PiMessage[] = [];
   for (const [i, message] of messages.entries()) {
     if (message.role === 'assistant') {
-      if (message.llm) history.push(message.llm);
+      history.push(...replayOf(message));
       continue;
     }
     const answer = messages[i + 1];
-    if (answer?.role === 'assistant' && !answer.llm) continue;
+    if (answer?.role === 'assistant' && replayOf(answer).length === 0) continue;
     history.push({ role: 'user', content: message.prompt, timestamp: Date.now() });
   }
   return history;
@@ -122,70 +128,54 @@ export function useChat(settings: Settings | undefined) {
     setTranscript(loaded);
 
     const { model, apiKey } = resolved;
-    const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings));
+    const webSearch = settings.llm.webSearch && searchAvailable(settings.llm);
+    const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings), webSearch);
     if (estimateTokens(systemPrompt) + RESERVED_TOKENS > model.contextWindow) {
       update(id, { status: 'error', error: t('errors.tooLong', { model: model.name }) });
       return;
     }
 
     update(id, { phase: 'thinking' });
-    const context: Context = { systemPrompt, messages: toHistory(conversation) };
-    let stream: ReturnType<typeof streamChat>;
-    // pi-ai reports failures as text only; the status tells which advice fits.
-    let httpStatus: number | undefined;
-    try {
-      stream = streamChat(model, context, {
-        apiKey,
-        signal: controller.signal,
-        sessionId: session.id,
-        reasoning: reasoningOption(model, settings.llm.thinking),
-        fetch: async (input, init) => {
-          const response = await fetch(input, init);
-          httpStatus = response.status;
-          return response;
-        },
-      });
-    } catch (error) {
-      update(id, { status: 'error', error: errorMessage(error) });
-      return;
-    }
+    const history = toHistory(conversation);
+    const prompt = history.pop();
+    const result = await runAgent({
+      model,
+      apiKey,
+      reasoning: reasoningOption(model, settings.llm.thinking),
+      sessionId: session.id,
+      signal: controller.signal,
+      systemPrompt,
+      history,
+      prompt: typeof prompt?.content === 'string' ? prompt.content : '',
+      tools: webSearch ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
+      onProgress: ({ text, thinking, thoughtMs, searches }) =>
+        update(id, {
+          text,
+          thinking: thinking || undefined,
+          thoughtMs,
+          searches: searches.length ? searches : undefined,
+          phase: thoughtMs === undefined ? 'thinking' : 'writing',
+        }),
+    });
 
-    // Deltas arrive faster than the screen refreshes; render at most once per frame.
-    let text = '';
-    let thinking = '';
-    let thoughtMs: number | undefined;
-    let frame: number | undefined;
-    const flush = () => {
-      frame = undefined;
-      update(id, { text, thinking: thinking || undefined, thoughtMs, phase: thoughtMs === undefined ? 'thinking' : 'writing' });
-    };
-    for await (const event of stream) {
-      if (event.type === 'thinking_delta') thinking += event.delta;
-      else if (event.type === 'text_delta') {
-        thoughtMs ??= Date.now() - startedAt;
-        text += event.delta;
-      } else continue;
-      frame ??= requestAnimationFrame(flush);
-    }
-    if (frame !== undefined) cancelAnimationFrame(frame);
-
-    const result = await stream.result();
-    const hasContent = result.content.some((block) => block.type === 'text' && block.text);
+    const stopReason = result.final?.stopReason ?? (controller.signal.aborted ? 'aborted' : 'error');
+    const errorText = result.final?.errorMessage ?? '';
     // An error after a successful response (a broken stream) has no advice to give.
     const failure =
-      result.stopReason === 'error' && (httpStatus === undefined || httpStatus >= 400)
-        ? describeServiceError(providerName(model.provider), { status: httpStatus, message: result.errorMessage ?? '' })
+      stopReason === 'error' && (result.httpStatus === undefined || result.httpStatus >= 400)
+        ? describeServiceError(providerName(model.provider), { status: result.httpStatus, message: errorText })
         : undefined;
     update(id, {
-      text,
-      thinking: thinking || undefined,
-      thoughtMs: thoughtMs ?? Date.now() - startedAt,
+      text: result.text,
+      thinking: result.thinking || undefined,
+      thoughtMs: result.thoughtMs ?? Date.now() - startedAt,
+      searches: result.searches.length ? result.searches : undefined,
       phase: 'writing',
-      status: result.stopReason === 'aborted' ? 'aborted' : result.stopReason === 'error' ? 'error' : 'done',
-      error: result.stopReason === 'error' ? failure?.message ?? (result.errorMessage || t('errors.modelError')) : undefined,
+      status: stopReason === 'aborted' ? 'aborted' : stopReason === 'error' ? 'error' : 'done',
+      error: stopReason === 'error' ? failure?.message ?? (errorText || t('errors.modelError')) : undefined,
       errorDetail: failure?.detail,
       // Keep partial answers in the history so follow-ups can refer to them.
-      llm: hasContent ? result : undefined,
+      llmMessages: result.messages.length ? result.messages : undefined,
     });
   };
 

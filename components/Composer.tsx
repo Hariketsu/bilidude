@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPreset } from '@/lib/presets';
 import type { PresetId, VideoRef } from '@/lib/types';
+import { SearchToggle } from './SearchToggle';
 import { ThinkingPicker } from './ThinkingPicker';
 
 export function Composer({
@@ -15,6 +16,7 @@ export function Composer({
   onSend,
   onStop,
   thinking,
+  search,
 }: {
   video?: VideoRef;
   /** The attachment card rides along only with the first message of a session. */
@@ -26,6 +28,8 @@ export function Composer({
   onStop: () => void;
   /** Shown only for models that can reason. */
   thinking?: { levels: ModelThinkingLevel[]; value: ModelThinkingLevel; onChange: (level: ModelThinkingLevel) => void };
+  /** Shown only when a search service is available. */
+  search?: { on: boolean; onChange: (on: boolean) => void };
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
@@ -77,6 +81,7 @@ export function Composer({
             className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent py-1.5 text-[15px] text-fg outline-none placeholder:text-fg-muted disabled:cursor-not-allowed"
           />
         </div>
+        {search && <SearchToggle {...search} />}
         {thinking && <ThinkingPicker {...thinking} />}
         {generating ? (
           <button

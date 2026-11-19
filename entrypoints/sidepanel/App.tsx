@@ -18,7 +18,7 @@ import { applyUiLanguage } from '@/lib/i18n';
 import { effectiveThinking, resolveModel, thinkingLevels } from '@/lib/llm/providers';
 import { PRESETS } from '@/lib/presets';
 import { downloadSubtitles, type SubtitleFormat } from '@/lib/subtitles';
-import { saveSettings, useSettings, withFirstModel } from '@/lib/settings';
+import { saveSettings, searchAvailable, useSettings, withFirstModel } from '@/lib/settings';
 import { seekVideo } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
 import { describeError } from '@/lib/errors';
@@ -243,6 +243,14 @@ export default function App() {
                     levels,
                     value: effectiveThinking(resolved.model, settings.llm.thinking),
                     onChange: (thinking) => void saveSettings({ ...settings, llm: { ...settings.llm, thinking } }),
+                  }
+                : undefined
+            }
+            search={
+              settings && resolved && searchAvailable(settings.llm)
+                ? {
+                    on: settings.llm.webSearch,
+                    onChange: (webSearch) => void saveSettings({ ...settings, llm: { ...settings.llm, webSearch } }),
                   }
                 : undefined
             }

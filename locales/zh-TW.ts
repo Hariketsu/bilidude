@@ -24,6 +24,7 @@ const zhTW: Messages = {
     quotes: '金句',
   },
   composer: {
+    webSearch: '聯網搜尋',
     askAboutVideo: '針對這部影片提問…',
     askAnother: '繼續提問…',
     removePreset: '移除預設',
@@ -43,6 +44,11 @@ const zhTW: Messages = {
     },
   },
   answer: {
+    search: {
+      running: '正在搜尋「{{query}}」',
+      done: '已搜尋「{{query}}」',
+      failed: '搜尋失敗：「{{query}}」',
+    },
     errorDetails: '詳情',
     thinking: '思考中…',
     transcribing: '轉錄中…',

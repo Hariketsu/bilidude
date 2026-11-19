@@ -10,6 +10,7 @@ import { AttachmentCard } from './AttachmentCard';
 import { IconButton } from './IconButton';
 import { Markdown } from './Markdown';
 import { PresetChip } from './PresetChip';
+import { SearchSteps } from './SearchSteps';
 import { ThinkingSteps, ThoughtSummary } from './ThinkingSteps';
 
 export function UserMessage({
@@ -72,11 +73,17 @@ export function AssistantMessage({
           video={message.video}
           asrProgress={message.asrProgress}
           thinking={message.thinking}
+          searches={message.searches}
         />
       ) : (
         <>
           {message.thoughtMs !== undefined && (
             <ThoughtSummary thoughtMs={message.thoughtMs} thinking={message.thinking} />
+          )}
+          {message.searches && (
+            <div className="mt-3 mb-4">
+              <SearchSteps searches={message.searches} />
+            </div>
           )}
           {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}

@@ -23,6 +23,7 @@ const en = {
     quotes: 'Top Quotes',
   },
   composer: {
+    webSearch: 'Web search',
     askAboutVideo: 'Ask a question about this video…',
     askAnother: 'Ask another question…',
     removePreset: 'Remove preset',
@@ -42,6 +43,11 @@ const en = {
     },
   },
   answer: {
+    search: {
+      running: 'Searching “{{query}}”',
+      done: 'Searched “{{query}}”',
+      failed: 'Search failed: “{{query}}”',
+    },
     errorDetails: 'Details',
     thinking: 'Thinking…',
     transcribing: 'Transcribing…',

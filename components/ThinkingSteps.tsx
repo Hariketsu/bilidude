@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { AtSign, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AsrProgress } from '@/lib/asr/transcribe';
+import type { SearchStep } from '@/lib/llm/search';
 import type { AnswerPhase, VideoRef } from '@/lib/types';
 import { AttachmentPill } from './AttachmentCard';
+import { SearchSteps } from './SearchSteps';
 import { AnswerProgress } from './TranscriptionProgress';
 
 /** Only the end of a long reasoning stream is visible; rendering all of it every frame is wasted work. */
@@ -14,12 +16,14 @@ export function ThinkingSteps({
   video,
   asrProgress,
   thinking,
+  searches,
 }: {
   phase: AnswerPhase;
   video: VideoRef;
   asrProgress?: AsrProgress;
   /** The model's reasoning so far, shown live while it thinks. */
   thinking?: string;
+  searches?: SearchStep[];
 }) {
   const { t } = useTranslation();
   return (
@@ -35,6 +39,7 @@ export function ThinkingSteps({
         </div>
       </div>
       {phase === 'transcribing' && <AnswerProgress progress={asrProgress} />}
+      {searches && <SearchSteps searches={searches} />}
       {phase === 'thinking' && thinking && (
         <div
           data-testid="thinking-preview"

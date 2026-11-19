@@ -171,3 +171,32 @@ export async function configureAsr(panel: Page, asr: Record<string, unknown>) {
     await storage.set({ settings: { ...settings, asr: { enabled: true, trigger: 'ask', ...asr } } });
   }, asr);
 }
+
+export type MockTurn = { text: string } | { toolCall: { name: string; arguments: object } };
+
+/** Streams one OpenAI-compatible chat completion per request from `turns`, in order; returns the request bodies. */
+export async function mockChatTurns(context: BrowserContext, url: string, turns: MockTurn[]) {
+  const requests: any[] = [];
+  const chunk = (delta: object, finish: string | null = null) =>
+    `data: ${JSON.stringify({ id: 'x', object: 'chat.completion.chunk', created: 0, model: 'm', choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
+  await context.route(url, (route) => {
+    requests.push(route.request().postDataJSON());
+    const turn = turns[Math.min(requests.length, turns.length) - 1]!;
+    const body =
+      'toolCall' in turn
+        ? chunk({ tool_calls: [{ index: 0, id: `call_${requests.length}`, type: 'function', function: { name: turn.toolCall.name, arguments: JSON.stringify(turn.toolCall.arguments) } }] }) +
+          chunk({}, 'tool_calls')
+        : chunk({ content: turn.text }) + chunk({}, 'stop');
+    return route.fulfill({ status: 200, contentType: 'text/event-stream', body: body + 'data: [DONE]\n\n' });
+  });
+  return requests;
+}
+
+/** Merges `patch` into the stored settings' `llm`. */
+export async function patchLlmSettings(panel: Page, patch: Record<string, unknown>) {
+  await panel.evaluate(async (patch) => {
+    const storage = (globalThis as unknown as { chrome: typeof browser }).chrome.storage.local;
+    const { settings } = (await storage.get('settings')) as { settings: { llm: Record<string, unknown> } };
+    await storage.set({ settings: { ...settings, llm: { ...settings.llm, ...patch } } });
+  }, patch);
+}

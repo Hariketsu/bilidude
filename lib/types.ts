@@ -1,4 +1,5 @@
-import type { AssistantMessage as PiAssistantMessage } from '@earendil-works/pi-ai';
+import type { AssistantMessage as PiAssistantMessage, Message as PiMessage } from '@earendil-works/pi-ai';
+import type { SearchStep } from './llm/search';
 import type { AsrProgress } from './asr/transcribe';
 
 export interface VideoRef {
@@ -73,7 +74,11 @@ export type AssistantMessage = {
   error?: string;
   /** The original error behind a friendly `error`, shown on request. */
   errorDetail?: string;
-  /** The provider's message, replayed as history in later turns. */
+  /** Web searches made while answering, in order. */
+  searches?: SearchStep[];
+  /** The provider's messages for this answer (assistant turns and tool results), replayed as history in later turns. */
+  llmMessages?: PiMessage[];
+  /** Sessions before 0.4.0 stored the single assistant message here. */
   llm?: PiAssistantMessage;
 };
 
