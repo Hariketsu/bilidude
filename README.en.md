@@ -58,7 +58,7 @@ Every provider's base URL can be changed, to reach a proxy or gateway that speak
 
 Bilibili only serves its AI subtitles to logged-in users, so log in to bilibili.com in the same browser.
 
-Turn on audio transcription in Settings. Besides Bilibili's Bcut, you can use OpenAI, Groq, Alibaba Cloud Model Studio, SiliconFlow or an OpenAI-compatible service.
+With DeepSeek as the model, videos without subtitles are transcribed by DeepSeek by default, with the same API key. Otherwise turn on audio transcription in Settings; you can use Bilibili's Bcut, DeepSeek, OpenAI, Groq, Alibaba Cloud Model Studio, SiliconFlow or an OpenAI-compatible service.
 
 The interface comes in Simplified Chinese, Traditional Chinese and English, and the answer language can be set separately.
 

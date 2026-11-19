@@ -58,7 +58,7 @@ BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选
 
 B 站只给登录用户提供 AI 字幕，所以请在同一个浏览器里登录 bilibili.com。
 
-音频转写在设置里打开。除了必剪，还可以用 OpenAI、Groq、阿里云百炼、硅基流动或 OpenAI 兼容服务。
+模型选 DeepSeek 时，没有字幕的视频默认用 DeepSeek 转写音频，共用同一个 API Key。其他情况下音频转写在设置里打开，可以用必剪、DeepSeek、OpenAI、Groq、阿里云百炼、硅基流动或 OpenAI 兼容服务。
 
 界面有简体中文、繁体中文和英文，回答的语言可以单独设置。
 
