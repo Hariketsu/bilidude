@@ -2,21 +2,27 @@ import { useMemo } from 'react';
 import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Citations } from '@/lib/citations';
+import type { SearchSource } from '@/lib/llm/search';
+import { remarkCitations } from '@/lib/remark-citations';
 import { remarkTimestamps } from '@/lib/remark-timestamps';
+import { CitationChip } from './SearchSteps';
 import { TimestampChip } from './TimestampChip';
 
 export function Markdown({
   text,
   citations,
+  sources,
   onSeek,
 }: {
   text: string;
   citations?: Citations;
+  /** Web pages the text cites as `[n]`. */
+  sources?: SearchSource[];
   onSeek?: (seconds: number) => void;
 }) {
   const remarkPlugins = useMemo<Options['remarkPlugins']>(
-    () => [remarkGfm, [remarkTimestamps, { citations }]],
-    [citations],
+    () => [remarkGfm, [remarkTimestamps, { citations }], [remarkCitations, { count: sources?.length ?? 0 }]],
+    [citations, sources?.length],
   );
   const components = {
     h1: ({ children }) => <h1 className="mt-2 mb-3 text-[22px] leading-snug font-bold">{children}</h1>,
@@ -45,7 +51,8 @@ export function Markdown({
       </div>
     ),
     'bd-timestamp': ({ seconds }: { seconds?: string }) => <TimestampChip seconds={Number(seconds)} onSeek={onSeek} />,
-  } as Components; // `bd-timestamp` comes from remarkTimestamps
+    'bd-cite': ({ n }: { n?: string }) => <CitationChip n={Number(n)} source={sources![Number(n) - 1]!} />,
+  } as Components; // `bd-timestamp` comes from remarkTimestamps, `bd-cite` from remarkCitations
 
   return (
     <div className="text-[15px] leading-7 text-fg">

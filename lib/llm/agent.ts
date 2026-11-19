@@ -1,5 +1,6 @@
 import { agentLoop, type AgentTool } from '@earendil-works/pi-agent-core';
 import type { Api, AssistantMessage, Message, Model, ThinkingLevel } from '@earendil-works/pi-ai';
+import { insertCitations, numberSources, type Citation } from '../sources';
 import { DEEPSEEK_SEARCH_TOOL, watchServerTools } from './deepseekServerTools';
 import { streamChat } from './providers';
 import type { SearchSource, SearchStep } from './search';
@@ -13,8 +14,8 @@ export interface AgentProgress {
   /** When the first answer text arrived, in ms since the start; undefined while still thinking. */
   thoughtMs?: number;
   searches: SearchStep[];
-  /** Pages cited by a server-side search. */
-  citations: SearchSource[];
+  /** The pages `[n]` in the text refers to: all pages found, then cited ones no search returned. */
+  sources: SearchSource[];
 }
 
 export interface AgentResult extends AgentProgress {
@@ -45,12 +46,15 @@ export interface AgentRun {
 /** Answers `prompt`, letting the model call `tools` until it writes its answer. */
 export async function runAgent(run: AgentRun): Promise<AgentResult> {
   const startedAt = Date.now();
-  const state: AgentProgress = { text: '', thinking: '', searches: [], citations: [] };
+  const state: AgentProgress = { text: '', thinking: '', searches: [], sources: [] };
   // Searches DeepSeek ran itself, per request; kept apart so later requests don't overwrite earlier ones.
   const serverSearches: SearchStep[][] = [];
+  // Citations per request; each request is one assistant turn, and positions count in its text.
+  const serverCitations: Citation[][] = [];
   let clientSearches: SearchStep[] = [];
   const syncSearches = () => {
     state.searches = [...serverSearches.flat(), ...clientSearches];
+    state.sources = numberSources(state.searches, serverCitations.flat());
   };
   const produced: Message[] = [];
   let final: AssistantMessage | undefined;
@@ -90,11 +94,12 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
         // One copy for pi-ai, one for the server-side search events it ignores.
         const [forModel, forTools] = response.body.tee();
         const slot = serverSearches.push([]) - 1;
+        serverCitations.push([]);
         pendingTaps.push(
           watchServerTools(forTools, ({ searches, citations }) => {
             serverSearches[slot] = searches;
+            serverCitations[slot] = citations;
             syncSearches();
-            state.citations = [...state.citations, ...citations.filter((c) => !state.citations.some((k) => k.url === c.url))];
             report();
           }).catch(() => {}),
         );
@@ -153,6 +158,17 @@ export async function runAgent(run: AgentRun): Promise<AgentResult> {
 
   // Replay up to the last turn with text: earlier tool calls are followed by their results.
   const lastText = produced.findLastIndex((m) => m.role === 'assistant' && m.content.some((b) => b.type === 'text' && b.text));
+  const turns = produced.filter((m) => m.role === 'assistant');
+  // Citations arrive with each request's last chunk, so the marks go in once the text is complete.
+  if (serverCitations.some((c) => c.length) && turns.length === serverCitations.length) {
+    state.text = turns
+      .map((turn, i) => {
+        const text = turn.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+        return insertCitations(text, serverCitations[i]!, state.sources);
+      })
+      .filter(Boolean)
+      .join('\n\n');
+  }
   state.text = state.text.trim();
   return { ...state, final, messages: produced.slice(0, lastText + 1), httpStatus };
 }

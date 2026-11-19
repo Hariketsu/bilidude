@@ -12,13 +12,13 @@ test.beforeEach(async ({ context }) => {
 test('with web search on, a non-DeepSeek model searches through the DeepSeek Search API', async ({ context, extensionId }) => {
   const requests = await mockChatTurns(context, CHAT_URL, [
     { toolCall: { name: 'web_search', arguments: { query: 'Rick Astley 1987' } } },
-    { text: 'Released in 1987. [00:20]' },
+    { text: 'Released in 1987 [1]. [00:20]' },
   ]);
   const searches: { auth?: string; body: any }[] = [];
   await context.route('https://api.deepseek.com/v1/tools/search', (route) => {
     searches.push({ auth: route.request().headers().authorization, body: route.request().postDataJSON() });
     return route.fulfill({
-      json: { results: [{ title: 'Never Gonna Give You Up', url: 'https://example.com/ngguy', site_name: 'Example', snippet: 's', summary: 'A 1987 song.', content: '' }] },
+      json: { results: [{ title: 'Never Gonna Give You Up', url: 'https://example.com/ngguy', site_name: 'Example', site_icon: null, snippet: 's', summary: 'A 1987 song.', content: '' }] },
     });
   });
   const { panel } = await openPanel(context, extensionId);
@@ -30,15 +30,22 @@ test('with web search on, a non-DeepSeek model searches through the DeepSeek Sea
 
   expect(requests[0].tools.map((tool: any) => tool.function.name)).toContain('web_search');
   expect(searches).toEqual([{ auth: 'Bearer sk-ds', body: expect.objectContaining({ query: 'Rick Astley 1987' }) }]);
-  // The result goes back to the model.
+  // The result goes back to the model, numbered for citing.
+  expect(JSON.stringify(requests[1].messages)).toContain('[1] Never Gonna Give You Up');
   expect(JSON.stringify(requests[1].messages)).toContain('A 1987 song.');
-  await expect(answer).toContainText('Released in 1987.');
-  await expect(answer.getByTestId('search-step')).toContainText('Rick Astley 1987');
-  await expect(answer.getByTestId('search-step')).toContainText('1 result');
-  // Sources are folded away until asked for.
-  await expect(answer.getByRole('link', { name: 'Never Gonna Give You Up' })).toHaveCount(0);
+  await expect(answer).toContainText('Released in 1987');
+  await expect(answer.getByTestId('search-step')).toContainText('Read 1 web page');
+  // The model's [1] is a chip linking to the page.
+  await expect(answer.locator('[data-citation="1"]')).toHaveAttribute('href', 'https://example.com/ngguy');
+  await expect(answer.getByTestId('answer-sources')).toContainText('1 web page');
+  // Pages are folded away until asked for.
+  await expect(answer.getByTestId('search-step').getByRole('link')).toHaveCount(0);
   await answer.getByTestId('search-step').getByRole('button').click();
-  await expect(answer.getByRole('link', { name: 'Never Gonna Give You Up' })).toHaveAttribute('href', 'https://example.com/ngguy');
+  await expect(answer.getByTestId('search-step')).toContainText('Rick Astley 1987');
+  await expect(answer.getByTestId('search-step').getByRole('link', { name: /Never Gonna Give You Up/ })).toHaveAttribute(
+    'href',
+    'https://example.com/ngguy',
+  );
 });
 
 test('web search is off by default: no tools are offered', async ({ context, extensionId }) => {
@@ -96,8 +103,14 @@ test('with DeepSeek, web search runs on DeepSeek and its searches and citations 
   expect(requests[0].tools).toContainEqual({ type: 'deepseek_web_search' });
   expect(requests[0].tools.map((tool: any) => tool.function?.name)).not.toContain('web_search');
   await expect(answer).toContainText('1987');
-  await expect(answer.getByTestId('search-step')).toContainText('When was "Never Gonna Give You Up" by Rick Astley released?');
+  await expect(answer.getByTestId('search-step')).toContainText('Read 3 web pages');
   await answer.getByTestId('search-step').getByRole('button').click();
+  await expect(answer.getByTestId('search-step')).toContainText('When was "Never Gonna Give You Up" by Rick Astley released?');
   await expect(answer.getByTestId('search-step').getByRole('link')).toHaveCount(3);
+  // Where the cited text ends: Wikipedia is the second search result; Baidu Baike wasn't among them, so it comes after.
+  await expect(answer.locator('[data-citation]')).toHaveText(['2', '4']);
+  await expect(answer.locator('p').first()).toContainText('发行24。');
+  await expect(answer.getByTestId('answer-sources')).toContainText('2 web pages');
+  await answer.getByTestId('answer-sources').getByRole('button').click();
   await expect(answer.getByTestId('answer-sources').getByRole('link')).toHaveCount(2);
 });

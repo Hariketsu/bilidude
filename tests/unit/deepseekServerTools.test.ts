@@ -39,7 +39,10 @@ describe('watchServerTools', () => {
     expect(last.searches[0]!.sources[0]).toMatchObject({
       title: 'BBC Sounds - Song Exploder, Rick Astley - Never Gonna Give You Up',
       url: 'https://www.bbc.co.uk/programmes/p0jjbzzb',
+      siteIcon: 'https://cdn.deepseek.com/site-icons/bbc.co.uk',
     });
+    // Each citation ends where the cited text does, before the full stop.
+    expect(last.citations.map((c) => c.end)).toEqual([57, 57]);
     expect(last.citations.map((c) => c.url)).toEqual([
       'https://zh.wikipedia.org/wiki/%E6%B0%B8%E4%B8%8D%E6%94%BE%E5%BC%83%E4%BD%A0#1',
       'https://baike.baidu.com/item/NEVER%20GONNA%20GIVE%20YOU%20UP/1719254?bst=1794751483.ac0bdeb973ad241a#1',

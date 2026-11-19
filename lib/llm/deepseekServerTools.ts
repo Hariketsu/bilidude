@@ -1,4 +1,5 @@
-import type { SearchSource, SearchStep } from './search';
+import type { Citation } from '../sources';
+import type { SearchStep } from './search';
 
 /**
  * DeepSeek's server-side web search (`deepseek_web_search`) in Chat Completions. pi-ai parses the
@@ -10,8 +11,8 @@ export const DEEPSEEK_SEARCH_TOOL = { type: 'deepseek_web_search' } as const;
 
 export interface ServerToolUpdate {
   searches: SearchStep[];
-  /** Pages the answer cites, in order, without duplicates. */
-  citations: SearchSource[];
+  /** Pages the answer cites, in order. */
+  citations: Citation[];
 }
 
 interface ServerCall {
@@ -19,13 +20,13 @@ interface ServerCall {
   type?: string;
   action?: { type: string; queries?: string[]; url?: string };
   status?: 'completed' | 'failed';
-  sources?: { url: string; title?: string; site_name?: string | null }[];
+  sources?: { url: string; title?: string; site_name?: string | null; site_icon?: string | null }[];
   page?: { url: string; title?: string };
 }
 
 interface Choice {
   server_tool_event?: { type: string; call?: ServerCall };
-  delta?: { annotations?: { type: string; url_citation?: { url: string; title?: string } }[] };
+  delta?: { annotations?: { type: string; url_citation?: { url: string; title?: string; end_index?: number } }[] };
 }
 
 /** Reads `body` to the end, calling `onUpdate` whenever the searches or citations change. */
@@ -46,7 +47,12 @@ export async function watchServerTools(
       state.searches = [...state.searches, { id: call.id, queries: call.action.queries ?? [], status: 'running', sources: [] }];
       changed = true;
     } else if (event?.type === 'call_completed' && call) {
-      const sources = (call.sources ?? []).map((s) => ({ title: s.title ?? s.url, url: s.url, siteName: s.site_name ?? undefined }));
+      const sources = (call.sources ?? []).map((s) => ({
+        title: s.title ?? s.url,
+        url: s.url,
+        siteName: s.site_name ?? undefined,
+        siteIcon: s.site_icon ?? undefined,
+      }));
       const status = call.status === 'failed' ? 'failed' : 'done';
       const known = state.searches.some((step) => step.id === call.id);
       state.searches = state.searches.map((step) => (step.id === call.id ? { ...step, status, sources } : step));
@@ -54,8 +60,8 @@ export async function watchServerTools(
     }
     const annotations = choice.delta?.annotations ?? [];
     for (const { url_citation: citation } of annotations) {
-      if (!citation || state.citations.some((c) => c.url === citation.url)) continue;
-      state.citations = [...state.citations, { title: citation.title ?? citation.url, url: citation.url }];
+      if (!citation || citation.end_index === undefined) continue;
+      state.citations = [...state.citations, { title: citation.title ?? citation.url, url: citation.url, end: citation.end_index }];
       changed = true;
     }
     if (changed) onUpdate({ searches: state.searches, citations: state.citations });

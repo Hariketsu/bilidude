@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
 import { formatAnswer } from '@/lib/export';
+import { citedSources, withSources } from '@/lib/sources';
 import { useTypewriter } from '@/lib/typewriter';
 import type { AssistantMessage as AssistantMsg, SubtitleStatus, UserMessage as UserMsg } from '@/lib/types';
 import { AttachmentCard } from './AttachmentCard';
@@ -64,6 +65,7 @@ export function AssistantMessage({
   const streaming = message.status === 'streaming' || shown !== message.text;
   const preparing = message.status === 'streaming' && message.phase !== 'writing';
   const text = streaming ? trimPartialTimestamp(shown) : message.text;
+  const cited = message.sources && !streaming ? citedSources(message.text, message.sources) : [];
 
   return (
     <div data-testid="answer" data-status={streaming ? 'streaming' : message.status}>
@@ -85,15 +87,17 @@ export function AssistantMessage({
               <SearchSteps searches={message.searches} />
             </div>
           )}
-          {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
-          {message.sources && !streaming && <AnswerSources sources={message.sources} />}
+          {text && <Markdown text={text} citations={citations} sources={message.sources} onSeek={onSeek} />}
+          {cited.length > 0 && <AnswerSources cited={cited} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
           {message.error && <AnswerError error={message.error} detail={message.errorDetail} />}
           {!streaming && (
             <div className="mt-3 flex gap-1">
               {text && (
                 <IconButton icon={Copy} label={t('answer.copy')} onClick={() =>
-                    navigator.clipboard.writeText(formatAnswer(message.text, message.video, { links: exportLinks, citations }))
+                    navigator.clipboard.writeText(
+                      withSources(formatAnswer(message.text, message.video, { links: exportLinks, citations }), message.sources, t('answer.sources')),
+                    )
                   } />
               )}
               <IconButton icon={RotateCw} label={t('answer.regenerate')} onClick={onRegenerate} />

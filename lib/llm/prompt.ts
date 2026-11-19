@@ -11,7 +11,13 @@ const SOURCE_LABEL: Record<Transcript['source'], string> = {
  * Instructions plus the whole video. Stays identical for every turn of a session,
  * so providers can serve it from the prompt cache.
  */
-export function buildSystemPrompt(video: VideoRef, transcript: Transcript, outputLanguage: string, webSearch = false): string {
+/** `search`: how the model searches the web, if it may: DeepSeek's server-side tool, or our `web_search` tool. */
+export function buildSystemPrompt(
+  video: VideoRef,
+  transcript: Transcript,
+  outputLanguage: string,
+  search?: 'server' | 'client',
+): string {
   const chapters = transcript.chapters.map((c) => `[${formatTimestamp(c.from)}] ${c.title}`).join('\n');
   const lines = transcript.lines.map((line) => `[${formatTimestamp(line.from)}] ${line.text}`).join('\n');
 
@@ -38,7 +44,7 @@ Write in ${outputLanguage}, regardless of the video's language.
 
 # Format
 Markdown with headings and short paragraphs. No tables. No preamble or closing remarks.
-${webSearch ? WEB_SEARCH_SECTION : ''}
+${search ? webSearchSection(search) : ''}
 # The video
 <video>
 Title: ${video.title}${video.partTitle ? `\nPart: P${video.p} ${video.partTitle}` : ''}
@@ -51,12 +57,13 @@ ${lines}
 </transcript>`;
 }
 
-const WEB_SEARCH_SECTION = `
+// Local date (sv formats as YYYY-MM-DD). It lets the model judge how recent results are; without it, it assumes its training year.
+const webSearchSection = (search: 'server' | 'client') => `
 # Web search
-You can search the web. Search only when it helps: a name or term in the transcript looks misrecognized, or the question needs facts the video does not give. Keep searches few and specific.
+Today is ${new Date().toLocaleDateString('sv')}. You can search the web. Search only when it helps: a name or term in the transcript looks misrecognized, or the question needs facts the video does not give. Keep searches few and specific.
 - Use what you find to correct misrecognized words in your own writing; quotes stay verbatim.
-- Mark information from the web as such, naming the source, and never give it a video timestamp.
-`;
+- Mark information from the web as such and never give it a video timestamp.
+${search === 'client' ? '- Cite search results by their number right after the sentence that uses them, like [3], or [2][5] for several.\n' : ''}`;
 
 const PRESET_PROMPTS: Record<PresetId, string> = {
   recap: `Recap this video.

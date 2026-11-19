@@ -1,6 +1,7 @@
 import { createCitations, type Citations } from './citations';
 import { loadStoredTranscript, type Session } from './db';
 import { t } from './i18n';
+import { withSources } from './sources';
 import { formatTimestamp, parseTimestamp, TIMESTAMP_PATTERN } from './timestamp';
 import type { VideoRef } from './types';
 
@@ -43,7 +44,7 @@ export async function sessionToMarkdown(session: Session, links: boolean): Promi
       const question = [message.preset && t(`presets.${message.preset}`), message.text].filter(Boolean).join(' · ');
       parts.push('---', `**${question}**`);
     } else if (message.text) {
-      parts.push(formatAnswer(message.text, video, options));
+      parts.push(withSources(formatAnswer(message.text, video, options), message.sources, t('answer.sources')));
     }
   }
   return `${parts.join('\n\n')}\n`;

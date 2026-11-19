@@ -129,7 +129,10 @@ export function useChat(settings: Settings | undefined) {
 
     const { model, apiKey } = resolved;
     const webSearch = settings.llm.webSearch && searchAvailable(settings.llm);
-    const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings), webSearch);
+    // DeepSeek searches on its side, free of charge; other models call the Search API through a tool.
+    const serverSearch = webSearch && model.provider === 'deepseek';
+    const search = webSearch ? (serverSearch ? 'server' : 'client') : undefined;
+    const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings), search);
     if (estimateTokens(systemPrompt) + RESERVED_TOKENS > model.contextWindow) {
       update(id, { status: 'error', error: t('errors.tooLong', { model: model.name }) });
       return;
@@ -147,16 +150,15 @@ export function useChat(settings: Settings | undefined) {
       systemPrompt,
       history,
       prompt: typeof prompt?.content === 'string' ? prompt.content : '',
-      // DeepSeek searches on its side, free of charge; other models call the Search API through a tool.
-      serverSearch: webSearch && model.provider === 'deepseek',
-      tools: webSearch && model.provider !== 'deepseek' ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
-      onProgress: ({ text, thinking, thoughtMs, searches, citations }) =>
+      serverSearch,
+      tools: search === 'client' ? [webSearchTool(settings.llm.apiKeys.deepseek!.trim())] : [],
+      onProgress: ({ text, thinking, thoughtMs, searches, sources }) =>
         update(id, {
           text,
           thinking: thinking || undefined,
           thoughtMs,
           searches: searches.length ? searches : undefined,
-          sources: citations.length ? citations : undefined,
+          sources: sources.length ? sources : undefined,
           phase: thoughtMs === undefined ? 'thinking' : 'writing',
         }),
     });
@@ -173,7 +175,7 @@ export function useChat(settings: Settings | undefined) {
       thinking: result.thinking || undefined,
       thoughtMs: result.thoughtMs ?? Date.now() - startedAt,
       searches: result.searches.length ? result.searches : undefined,
-      sources: result.citations.length ? result.citations : undefined,
+      sources: result.sources.length ? result.sources : undefined,
       phase: 'writing',
       status: stopReason === 'aborted' ? 'aborted' : stopReason === 'error' ? 'error' : 'done',
       error: stopReason === 'error' ? failure?.message ?? (errorText || t('errors.modelError')) : undefined,

@@ -8,6 +8,8 @@ export interface SearchSource {
   title: string;
   url: string;
   siteName?: string;
+  /** The site's icon, served by DeepSeek. */
+  siteIcon?: string;
 }
 
 /** One web search the model ran, as shown among the answer's steps. */
@@ -24,6 +26,7 @@ interface SearchResult {
   summary?: string;
   snippet?: string;
   site_name?: string | null;
+  site_icon?: string | null;
   date?: string | null;
 }
 
@@ -51,8 +54,12 @@ const parameters = {
   required: ['query'],
 } as const;
 
-/** The `web_search` tool for models without a search of their own; `details` carries the step for the UI. */
+/**
+ * The `web_search` tool for models without a search of their own; `details` carries the step for the UI.
+ * Results are numbered across all searches of one answer, so the model can cite them as `[n]`.
+ */
 export function webSearchTool(apiKey: string): AgentTool<any, SearchSource[]> {
+  let numbered = 0;
   return {
     name: 'web_search',
     label: 'Web search',
@@ -61,14 +68,16 @@ export function webSearchTool(apiKey: string): AgentTool<any, SearchSource[]> {
     parameters,
     async execute(_id, { query }: { query: string }, signal) {
       const results = await searchWeb(query, apiKey, signal);
+      const first = numbered + 1;
+      numbered += results.length;
       const text = results.length
         ? results
-            .map((r, i) => `[${i + 1}] ${r.title}\n${r.url}${r.date ? `\nDate: ${r.date}` : ''}\n${r.summary || r.snippet || ''}`)
+            .map((r, i) => `[${first + i}] ${r.title}\n${r.url}${r.date ? `\nDate: ${r.date}` : ''}\n${r.summary || r.snippet || ''}`)
             .join('\n\n')
         : 'No results.';
       return {
         content: [{ type: 'text', text }],
-        details: results.map((r) => ({ title: r.title, url: r.url, siteName: r.site_name ?? undefined })),
+        details: results.map((r) => ({ title: r.title, url: r.url, siteName: r.site_name ?? undefined, siteIcon: r.site_icon ?? undefined })),
       };
     },
   };
