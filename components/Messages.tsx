@@ -1,4 +1,5 @@
 import { Copy, RotateCw } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { trimPartialTimestamp } from '@/lib/timestamp';
 import type { Citations } from '@/lib/citations';
@@ -79,11 +80,7 @@ export function AssistantMessage({
           )}
           {text && <Markdown text={text} citations={citations} onSeek={onSeek} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
-          {message.error && (
-            <p data-testid="answer-error" className="mt-2 text-[15px] text-fg-muted">
-              {message.error}
-            </p>
-          )}
+          {message.error && <AnswerError error={message.error} detail={message.errorDetail} />}
           {!streaming && (
             <div className="mt-3 flex gap-1">
               {text && (
@@ -96,6 +93,25 @@ export function AssistantMessage({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** The friendly message; the original error behind it opens on request. */
+function AnswerError({ error, detail }: { error: string; detail?: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <div data-testid="answer-error" className="mt-2 text-[15px] text-fg-muted">
+      <p>
+        {error}
+        {detail && (
+          <button type="button" className="ml-2 text-sm underline underline-offset-2 hover:text-fg" onClick={() => setOpen(!open)}>
+            {t('answer.errorDetails')}
+          </button>
+        )}
+      </p>
+      {open && detail && <p className="mt-1 text-sm break-words whitespace-pre-wrap">{detail}</p>}
     </div>
   );
 }

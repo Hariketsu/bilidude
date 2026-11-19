@@ -1,6 +1,7 @@
 import type { AacChunk } from './aac';
 import { concatFrames } from './aac';
 import { aacToWav } from './wav';
+import { ServiceError, serviceFetch } from '../errors';
 import { t } from '../i18n';
 
 export type AsrProviderId = 'bcut' | 'openai' | 'groq' | 'siliconflow' | 'dashscope' | 'custom';
@@ -111,7 +112,7 @@ export async function transcribeChunk(config: AsrConfig, chunk: AacChunk, sample
     : transcribeOpenAi(config, chunk, signal);
 }
 
-async function errorFrom(response: Response): Promise<Error> {
+async function errorFrom(config: AsrConfig, response: Response): Promise<ServiceError> {
   const body = await response.text().catch(() => '');
   let message = body.slice(0, 300);
   try {
@@ -120,9 +121,7 @@ async function errorFrom(response: Response): Promise<Error> {
   } catch {
     // Not JSON; keep the raw text.
   }
-  return Object.assign(new Error(`Transcription failed (HTTP ${response.status}): ${message}`), {
-    retryable: response.status === 429 || response.status >= 500,
-  });
+  return new ServiceError(config.provider.name, response.status, message);
 }
 
 async function transcribeOpenAi(config: AsrConfig, chunk: AacChunk, signal?: AbortSignal): Promise<ChunkTranscript> {
@@ -132,13 +131,13 @@ async function transcribeOpenAi(config: AsrConfig, chunk: AacChunk, signal?: Abo
   form.append('response_format', config.provider.timestamps ? 'verbose_json' : 'json');
   if (config.provider.timestamps) form.append('timestamp_granularities[]', 'segment');
 
-  const response = await fetch(`${config.baseUrl}/audio/transcriptions`, {
+  const response = await serviceFetch(config.provider.name, `${config.baseUrl}/audio/transcriptions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${config.apiKey}` },
     body: form,
     signal,
   });
-  if (!response.ok) throw await errorFrom(response);
+  if (!response.ok) throw await errorFrom(config, response);
   const data: { text?: string; segments?: { start: number; end: number; text: string }[] } = await response.json();
 
   const segments = (data.segments ?? [])
@@ -177,7 +176,7 @@ async function transcribeDashscope(
   sampleRate: number,
   signal?: AbortSignal,
 ): Promise<ChunkTranscript> {
-  const response = await fetch(dashscopeEndpoint(config), {
+  const response = await serviceFetch(config.provider.name, dashscopeEndpoint(config), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -199,7 +198,7 @@ async function transcribeDashscope(
     }),
     signal,
   });
-  if (!response.ok) throw await errorFrom(response);
+  if (!response.ok) throw await errorFrom(config, response);
 
   // SSE events (or a single JSON body for short audio), each carrying `output.sentence`.
   const raw = await response.text();

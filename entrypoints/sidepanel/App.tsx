@@ -21,6 +21,7 @@ import { downloadSubtitles, type SubtitleFormat } from '@/lib/subtitles';
 import { saveSettings, useSettings } from '@/lib/settings';
 import { seekVideo } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
+import { describeError } from '@/lib/errors';
 import { applyTheme } from '@/lib/theme';
 import type { PresetId } from '@/lib/types';
 import { useActiveVideo } from './useActiveVideo';
@@ -135,7 +136,7 @@ export default function App() {
       downloadSubtitles(video, transcript, format);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') setSubtitleJob(undefined);
-      else setSubtitleJob({ error: error instanceof Error ? error.message : String(error) });
+      else setSubtitleJob({ error: describeError(error).message });
     }
   };
 

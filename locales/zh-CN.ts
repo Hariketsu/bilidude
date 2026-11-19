@@ -43,6 +43,7 @@ const zhCN: Messages = {
     },
   },
   answer: {
+    errorDetails: '详情',
     thinking: '思考中…',
     transcribing: '转写中…',
     readingAttachment: '读取 1 个附件',
@@ -57,6 +58,12 @@ const zhCN: Messages = {
     regenerate: '重新生成',
   },
   errors: {
+    serviceFailed: '{{service}} 返回了错误，可展开查看详情。',
+    unreachable: '无法连接到 {{service}}，请检查网络或接口地址。',
+    unavailable: '{{service}} 服务暂时不可用，请稍后再试。',
+    rateLimited: '{{service}} 的请求过于频繁或额度已用完，请稍后再试。',
+    outOfCredit: '{{service}} 账户余额不足，请充值后再试。',
+    keyInvalid: '{{service}} 的 API Key 无效或已过期，请在设置里更换。',
     noModel: '请先在设置里配置模型。',
     subtitles: '无法加载字幕：{{error}}',
     noSubtitles: '这个视频没有字幕。在设置里开启语音转写后即可提问。',

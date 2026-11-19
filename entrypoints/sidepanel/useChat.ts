@@ -3,10 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
 import { createCitations } from '@/lib/citations';
+import { describeError, describeServiceError } from '@/lib/errors';
 import { saveSession, videoKeyOf, type Session } from '@/lib/db';
 import { t } from '@/lib/i18n';
 import { buildSystemPrompt, buildUserPrompt, estimateTokens } from '@/lib/llm/prompt';
-import { reasoningOption, resolveModel, streamChat } from '@/lib/llm/providers';
+import { PROVIDERS, reasoningOption, resolveModel, streamChat } from '@/lib/llm/providers';
 import { resolveOutputLanguage, type Settings } from '@/lib/settings';
 import { getPlaybackTime } from '@/lib/tab';
 import { getTranscript } from '@/lib/transcript';
@@ -34,6 +35,10 @@ function toHistory(messages: Message[]): PiMessage[] {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function providerName(id: string): string {
+  return PROVIDERS.find((provider) => provider.id === id)?.name ?? id;
 }
 
 function newSession() {
@@ -107,7 +112,9 @@ export function useChat(settings: Settings | undefined) {
           if (!controller.signal.aborted) update(id, { asrProgress });
         });
       } catch (error) {
-        if (!controller.signal.aborted) update(id, { status: 'error', error: t('errors.transcription', { error: errorMessage(error) }) });
+        if (controller.signal.aborted) return;
+        const { message, detail } = describeError(error);
+        update(id, { status: 'error', error: t('errors.transcription', { error: message }), errorDetail: detail });
         return;
       }
       if (controller.signal.aborted) return;
@@ -124,12 +131,19 @@ export function useChat(settings: Settings | undefined) {
     update(id, { phase: 'thinking' });
     const context: Context = { systemPrompt, messages: toHistory(conversation) };
     let stream: ReturnType<typeof streamChat>;
+    // pi-ai reports failures as text only; the status tells which advice fits.
+    let httpStatus: number | undefined;
     try {
       stream = streamChat(model, context, {
         apiKey,
         signal: controller.signal,
         sessionId: session.id,
         reasoning: reasoningOption(model, settings.llm.thinking),
+        fetch: async (input, init) => {
+          const response = await fetch(input, init);
+          httpStatus = response.status;
+          return response;
+        },
       });
     } catch (error) {
       update(id, { status: 'error', error: errorMessage(error) });
@@ -157,13 +171,19 @@ export function useChat(settings: Settings | undefined) {
 
     const result = await stream.result();
     const hasContent = result.content.some((block) => block.type === 'text' && block.text);
+    // An error after a successful response (a broken stream) has no advice to give.
+    const failure =
+      result.stopReason === 'error' && (httpStatus === undefined || httpStatus >= 400)
+        ? describeServiceError(providerName(model.provider), { status: httpStatus, message: result.errorMessage ?? '' })
+        : undefined;
     update(id, {
       text,
       thinking: thinking || undefined,
       thoughtMs: thoughtMs ?? Date.now() - startedAt,
       phase: 'writing',
       status: result.stopReason === 'aborted' ? 'aborted' : result.stopReason === 'error' ? 'error' : 'done',
-      error: result.stopReason === 'error' ? result.errorMessage || t('errors.modelError') : undefined,
+      error: result.stopReason === 'error' ? failure?.message ?? (result.errorMessage || t('errors.modelError')) : undefined,
+      errorDetail: failure?.detail,
       // Keep partial answers in the history so follow-ups can refer to them.
       llm: hasContent ? result : undefined,
     });

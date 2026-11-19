@@ -71,6 +71,8 @@ export type AssistantMessage = {
   thinking?: string;
   thoughtMs?: number;
   error?: string;
+  /** The original error behind a friendly `error`, shown on request. */
+  errorDetail?: string;
   /** The provider's message, replayed as history in later turns. */
   llm?: PiAssistantMessage;
 };

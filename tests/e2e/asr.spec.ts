@@ -298,3 +298,21 @@ test('the history offers to transcribe videos without subtitles before downloadi
   await sheet.getByRole('button', { name: 'Download' }).click();
   await expect.poll(() => downloads).toEqual([expect.stringMatching(/\.srt$/)]);
 });
+
+test('an expired ASR key is explained, with the original error on request', async ({ context, extensionId }) => {
+  test.setTimeout(90_000);
+  await mockLlm(context, 'unused');
+  await context.route('https://api.groq.com/openai/v1/audio/transcriptions', (route) =>
+    route.fulfill({ status: 401, json: { error: { message: 'Invalid API Key' } } }),
+  );
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+  await configureAsr(panel, { provider: 'groq', apiKeys: { groq: 'gsk-expired' } });
+
+  const answer = await ask(panel, { preset: 'Recap' }, 60_000);
+  const error = answer.getByTestId('answer-error');
+  await expect(error).toContainText('The Groq API key is invalid or has expired. Replace it in settings.');
+  await expect(error).not.toContainText('Invalid API Key');
+  await error.getByRole('button', { name: 'Details' }).click();
+  await expect(error).toContainText('HTTP 401: Invalid API Key');
+});

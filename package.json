@@ -11,7 +11,8 @@
     "zip": "wxt zip",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
-    "test:e2e": "wxt build && playwright test"
+    "test:e2e": "wxt build && playwright test",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "^1.5.2",
@@ -36,6 +37,7 @@
     "@wxt-dev/module-react": "^1.2.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
+    "vitest": "^5.1.1",
     "wxt": "^0.21.4"
   }
 }

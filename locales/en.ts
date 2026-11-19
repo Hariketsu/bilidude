@@ -42,6 +42,7 @@ const en = {
     },
   },
   answer: {
+    errorDetails: 'Details',
     thinking: 'Thinking…',
     transcribing: 'Transcribing…',
     readingAttachment: 'Reading 1 attachment',
@@ -56,6 +57,12 @@ const en = {
     regenerate: 'Regenerate',
   },
   errors: {
+    serviceFailed: '{{service}} returned an error. Expand for details.',
+    unreachable: 'Couldn\'t reach {{service}}. Check your network or the API address.',
+    unavailable: '{{service}} is temporarily unavailable. Try again later.',
+    rateLimited: '{{service}} is receiving too many requests, or your quota is used up. Try again later.',
+    outOfCredit: 'Your {{service}} account is out of credit. Top it up and try again.',
+    keyInvalid: 'The {{service}} API key is invalid or has expired. Replace it in settings.',
     noModel: 'Set up a model in Settings first.',
     subtitles: "Couldn't load subtitles: {{error}}",
     noSubtitles: 'This video has no subtitles. Turn on audio transcription in Settings to ask about it.',

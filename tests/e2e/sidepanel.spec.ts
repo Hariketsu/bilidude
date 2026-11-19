@@ -192,3 +192,18 @@ test('offers to turn on transcription when a video has no subtitles', async ({ c
   await panel.getByRole('button', { name: 'Open settings' }).click();
   await expect(panel.getByRole('heading', { name: 'Settings' })).toBeVisible();
 });
+
+test('an expired model key is explained, with the original error on request', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  await context.route('https://api.deepseek.com/**', (route) =>
+    route.fulfill({ status: 401, json: { error: { message: 'Authentication Fails, Your api key is invalid' } } }),
+  );
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  const answer = await ask(panel, { preset: 'Recap' });
+  const error = answer.getByTestId('answer-error');
+  await expect(error).toContainText('The DeepSeek API key is invalid or has expired. Replace it in settings.');
+  await error.getByRole('button', { name: 'Details' }).click();
+  await expect(error).toContainText('Authentication Fails');
+});

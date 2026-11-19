@@ -43,6 +43,7 @@ const zhTW: Messages = {
     },
   },
   answer: {
+    errorDetails: '詳情',
     thinking: '思考中…',
     transcribing: '轉錄中…',
     readingAttachment: '讀取 1 個附件',
@@ -57,6 +58,12 @@ const zhTW: Messages = {
     regenerate: '重新產生',
   },
   errors: {
+    serviceFailed: '{{service}} 回傳了錯誤，可展開查看詳情。',
+    unreachable: '無法連線到 {{service}}，請檢查網路或介面位址。',
+    unavailable: '{{service}} 服務暫時無法使用，請稍後再試。',
+    rateLimited: '{{service}} 的請求過於頻繁或額度已用完，請稍後再試。',
+    outOfCredit: '{{service}} 帳戶餘額不足，請儲值後再試。',
+    keyInvalid: '{{service}} 的 API Key 無效或已過期，請在設定裡更換。',
     noModel: '請先在設定中設定模型。',
     subtitles: '無法載入字幕：{{error}}',
     noSubtitles: '這部影片沒有字幕。在設定中開啟語音轉錄後即可提問。',
