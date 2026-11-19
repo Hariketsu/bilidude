@@ -45,7 +45,7 @@ Write in ${outputLanguage}, regardless of the video's language.
   > Translation of the quote
 
 # Format
-Markdown with headings and short paragraphs. No tables. No preamble or closing remarks.
+Markdown with headings and short paragraphs. Use a table when comparing several items on the same attributes (models, prices, dates, specs); keep cells short and put explanations in the text around it. Timestamps can go in cells; quotes cannot. If the user asks for a format, use it. No preamble or closing remarks.
 
 # The video
 <video>
