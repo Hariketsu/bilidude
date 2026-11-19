@@ -109,6 +109,34 @@ test('follow-ups carry history and the playback position', async ({ context, ext
   expect(JSON.stringify(messages.at(-1).content)).toMatch(/Current playback position: 01:3\d/);
 });
 
+test('only the first answer shows reading the video; follow-ups reuse it', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  await mockLlm(context, 'An answer. [00:06]');
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  const first = await ask(panel, { preset: 'Recap' });
+  await first.getByTestId('timeline').getByRole('button').first().click();
+  await expect(first.getByTestId('attachment-step')).toBeVisible();
+
+  // The mocked model thinks before answering: the follow-up's timeline has that, but not the video.
+  const second = await ask(panel, { text: 'And then?' });
+  await second.getByTestId('timeline').getByRole('button').first().click();
+  await expect(second.getByTestId('thinking-step')).toBeVisible();
+  await expect(second.getByTestId('attachment-step')).toHaveCount(0);
+});
+
+test('tables get rules between rows', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  await mockLlm(context, 'Times:\n\n| Region | Time |\n| --- | --- |\n| NZ | 19:00 |\n| CN | 00:00 |\n');
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  const answer = await ask(panel, { text: 'When?' });
+  await expect(answer.locator('th')).toHaveText(['Region', 'Time']);
+  await expect(answer.locator('td').first()).toHaveCSS('border-bottom-style', 'solid');
+});
+
 test('thinking is off by default and switchable next to the composer', async ({ context, extensionId }) => {
   await mockSubtitles(context);
   const requests = await mockLlm(context, 'An answer. [00:06]');

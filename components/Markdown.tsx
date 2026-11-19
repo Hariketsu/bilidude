@@ -43,6 +43,20 @@ export function Markdown({
         {children}
       </a>
     ),
+    // Like DeepSeek's chat demo: rules between rows only, scrolling sideways when the panel is too narrow.
+    table: ({ children }) => (
+      <div className="my-4 overflow-x-auto">
+        <table className="w-max border-collapse text-sm leading-[22px]">{children}</table>
+      </div>
+    ),
+    th: ({ children }) => (
+      <th className="max-w-60 min-w-20 border-b border-fg-muted/30 px-3 py-2 text-left font-semibold first:pl-0 last:pr-0">
+        {children}
+      </th>
+    ),
+    td: ({ children }) => (
+      <td className="max-w-60 min-w-20 border-b border-border px-3 py-2 align-top first:pl-0 last:pr-0">{children}</td>
+    ),
     code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 text-[0.9em]">{children}</code>,
     // A blockquote whose text isn't in the transcript: shown as plain prose, not as the speaker's words.
     'bd-paraphrase': ({ children }: { children?: React.ReactNode }) => (
