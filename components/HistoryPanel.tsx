@@ -1,9 +1,11 @@
-import { ArrowLeft, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, FlaskConical, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveAsr } from '@/lib/asr/providers';
 import { watchTranscription, type AsrProgress } from '@/lib/asr/transcribe';
-import { runExport } from '@/lib/export/batch';
+import { loadTranscripts, runExport, uniqueVideos } from '@/lib/export/batch';
+import { toEvalMaterials } from '@/lib/export/evalMaterials';
+import { saveTextFile } from '@/lib/export/session';
 import { deleteSession, listSessions, type Session } from '@/lib/storage/db';
 import { t } from '@/lib/i18n';
 import { saveSettings, type Settings } from '@/lib/storage/settings';
@@ -193,11 +195,22 @@ export function HistoryPanel({
   const chosen = sessions?.filter((s) => selected.has(s.id)) ?? [];
   const allSelected = !!sessions && sessions.length > 0 && chosen.length === sessions.length;
 
+  // Development builds only: the prompt eval's input (docs/PROMPT-EVAL.md), for the chosen sessions or all of them.
+  const exportEvalMaterials = async () => {
+    const videos = uniqueVideos(chosen.length ? chosen : (sessions ?? []));
+    const { materials, missing } = toEvalMaterials(videos, await loadTranscripts(videos));
+    saveTextFile('eval-materials.json', JSON.stringify(materials, null, 2), 'application/json');
+    if (missing.length) alert(`No transcript, transcribe first:\n${missing.map((v) => `${v.bvid} ${v.title}`).join('\n')}`);
+  };
+
   return (
     <div className="absolute inset-0 z-10 flex flex-col bg-bg">
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
         <IconButton icon={ArrowLeft} label={t('common.back')} onClick={onClose} />
         <h1 className="flex-1 text-[15px] font-semibold">{t('history.title')}</h1>
+        {import.meta.env.DEV && !!sessions?.length && (
+          <IconButton icon={FlaskConical} label="Export eval materials" onClick={exportEvalMaterials} />
+        )}
         {!!sessions?.length && (
           <button
             type="button"
