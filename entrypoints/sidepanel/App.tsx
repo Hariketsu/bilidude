@@ -206,7 +206,7 @@ export default function App() {
               <AssistantMessage
                 key={message.id}
                 message={message}
-                citations={chat.citations}
+                transcriptCheck={chat.transcriptCheck}
                 exportLinks={settings?.exportLinks ?? true}
                 onSeek={(seconds) => void seekVideo(message.video, seconds)}
                 onRegenerate={() => void chat.regenerate(message.id)}

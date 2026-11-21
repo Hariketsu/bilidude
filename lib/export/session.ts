@@ -1,4 +1,4 @@
-import { createCitations, type Citations } from '../render/transcriptCheck';
+import { createTranscriptCheck, type TranscriptCheck } from '../render/transcriptCheck';
 import { loadStoredTranscript, type Session } from '../storage/db';
 import { t } from '../i18n';
 import { withSources } from '../search/sources';
@@ -9,7 +9,7 @@ export interface ExportOptions {
   /** Write timestamps as links that open the video at that moment. */
   links: boolean;
   /** Snaps and drops timestamps the same way the panel shows them. */
-  citations?: Citations;
+  transcriptCheck?: TranscriptCheck;
 }
 
 export function videoUrl(video: Pick<VideoRef, 'bvid' | 'p'>, seconds?: number): string {
@@ -21,10 +21,10 @@ export function videoUrl(video: Pick<VideoRef, 'bvid' | 'p'>, seconds?: number):
 }
 
 /** An answer's Markdown with its timestamps as shown in the panel: plain `[03:05]`, or links. */
-export function formatAnswer(text: string, video: VideoRef, { links, citations }: ExportOptions): string {
+export function formatAnswer(text: string, video: VideoRef, { links, transcriptCheck }: ExportOptions): string {
   return text.replace(TIMESTAMP_PATTERN, (_match, hours: string | undefined, minutes: string, secs: string) => {
     const cited = parseTimestamp(hours, minutes, secs);
-    const seconds = citations ? citations.resolveTime(cited) : cited;
+    const seconds = transcriptCheck ? transcriptCheck.resolveTime(cited) : cited;
     if (seconds === null) return '';
     const label = `[${formatTimestamp(seconds)}]`;
     return links ? `${label}(${videoUrl(video, seconds)})` : label;
@@ -35,7 +35,7 @@ export function formatAnswer(text: string, video: VideoRef, { links, citations }
 export async function sessionToMarkdown(session: Session, links: boolean): Promise<string> {
   const { video } = session;
   const transcript = await loadStoredTranscript(`${video.bvid}:${video.cid}`);
-  const options = { links, citations: transcript && createCitations(transcript, video.durationSec) };
+  const options = { links, transcriptCheck: transcript && createTranscriptCheck(transcript, video.durationSec) };
 
   const title = video.partTitle ? `${video.title} · P${video.p} ${video.partTitle}` : video.title;
   const parts = [`# ${title}`, `${videoUrl(video)}  \n${t('export.uploader', { name: video.upName })}`];

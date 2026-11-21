@@ -1,26 +1,26 @@
 import type { Blockquote, PhrasingContent, Root } from 'mdast';
 import { toString } from 'mdast-util-to-string';
 import { visit } from 'unist-util-visit';
-import type { Citations } from './transcriptCheck';
+import type { TranscriptCheck } from './transcriptCheck';
 import { parseTimestamp, TIMESTAMP_PATTERN } from './timestamp';
 
 const QUOTED_TEXT = /[“"「『]([^”"」』]+)[”"」』]/;
 
 /**
- * Turns `[03:05]` text into `<bd-timestamp seconds="185">` elements. With `citations`,
+ * Turns `[03:05]` text into `<bd-timestamp seconds="185">` elements. With `transcriptCheck`,
  * times are snapped to transcript lines (or dropped) and blockquotes whose text is
  * not found in the transcript are rendered as ordinary paragraphs.
  */
-export function remarkTimestamps({ citations }: { citations?: Citations } = {}) {
+export function remarkTimestamps({ transcriptCheck }: { transcriptCheck?: TranscriptCheck } = {}) {
   return (tree: Root) => {
-    if (citations) {
+    if (transcriptCheck) {
       visit(tree, 'blockquote', (node: Blockquote) => {
         const text = toString(node);
         const time = [...text.matchAll(TIMESTAMP_PATTERN)][0];
         if (!time) return; // Still streaming, or no citation to check against.
         const quote = text.slice(0, time.index).match(QUOTED_TEXT)?.[1] ?? text.slice(0, time.index);
         const seconds = parseTimestamp(time[1], time[2]!, time[3]!);
-        if (!citations.isVerbatim(quote, seconds)) {
+        if (!transcriptCheck.isVerbatim(quote, seconds)) {
           node.data = { ...node.data, hName: 'bd-paraphrase' };
         }
       });
@@ -37,7 +37,7 @@ export function remarkTimestamps({ citations }: { citations?: Citations } = {}) 
         last = start + match[0].length;
 
         const cited = parseTimestamp(match[1], match[2]!, match[3]!);
-        const seconds = citations ? citations.resolveTime(cited) : cited;
+        const seconds = transcriptCheck ? transcriptCheck.resolveTime(cited) : cited;
         if (seconds === null) continue;
         parts.push({
           type: 'text',

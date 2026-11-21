@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Citations } from '@/lib/render/transcriptCheck';
+import type { TranscriptCheck } from '@/lib/render/transcriptCheck';
 import type { SearchSource } from '@/lib/search/client';
 import { remarkCitations } from '@/lib/render/remark-citations';
 import { remarkTimestamps } from '@/lib/render/remark-timestamps';
@@ -10,19 +10,19 @@ import { TimestampChip } from './TimestampChip';
 
 export function Markdown({
   text,
-  citations,
+  transcriptCheck,
   sources,
   onSeek,
 }: {
   text: string;
-  citations?: Citations;
+  transcriptCheck?: TranscriptCheck;
   /** Web pages the text cites as `[n]`. */
   sources?: SearchSource[];
   onSeek?: (seconds: number) => void;
 }) {
   const remarkPlugins = useMemo<Options['remarkPlugins']>(
-    () => [remarkGfm, [remarkTimestamps, { citations }], [remarkCitations, { count: sources?.length ?? 0 }]],
-    [citations, sources?.length],
+    () => [remarkGfm, [remarkTimestamps, { transcriptCheck }], [remarkCitations, { count: sources?.length ?? 0 }]],
+    [transcriptCheck, sources?.length],
   );
   const components = {
     h1: ({ children }) => <h1 className="mt-2 mb-3 text-[22px] leading-snug font-bold">{children}</h1>,

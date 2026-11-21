@@ -2,7 +2,7 @@ import { Copy, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { trimPartialTimestamp } from '@/lib/render/timestamp';
-import type { Citations } from '@/lib/render/transcriptCheck';
+import type { TranscriptCheck } from '@/lib/render/transcriptCheck';
 import { formatAnswer } from '@/lib/export/session';
 import type { SearchSource } from '@/lib/search/client';
 import { foundPages } from '@/lib/llm/steps';
@@ -50,7 +50,7 @@ export function UserMessage({
 
 export function AssistantMessage({
   message,
-  citations,
+  transcriptCheck,
   exportLinks,
   onSeek,
   onRegenerate,
@@ -60,7 +60,7 @@ export function AssistantMessage({
   message: AssistantMsg;
   /** Answers the message the video was attached to. */
   attached: boolean;
-  citations?: Citations;
+  transcriptCheck?: TranscriptCheck;
   /** Copy timestamps as links to the video. */
   exportLinks: boolean;
   onSeek?: (seconds: number) => void;
@@ -81,7 +81,7 @@ export function AssistantMessage({
       {(preparing || message.thoughtMs !== undefined) && <AnswerTimeline message={message} attached={attached} onShowSources={onShowSources} />}
       {!preparing && (
         <>
-          {text && <Markdown text={text} citations={citations} sources={message.sources} onSeek={onSeek} />}
+          {text && <Markdown text={text} transcriptCheck={transcriptCheck} sources={message.sources} onSeek={onSeek} />}
           {pages.length > 0 && !streaming && <SourcesPill sources={pages} onOpen={() => onShowSources(pages)} />}
           {message.status === 'aborted' && <p className="mt-2 text-sm text-fg-muted">{t('answer.stopped')}</p>}
           {message.error && <AnswerError error={message.error} detail={message.errorDetail} />}
@@ -91,7 +91,7 @@ export function AssistantMessage({
               {text && (
                 <IconButton icon={Copy} label={t('answer.copy')} onClick={() =>
                     navigator.clipboard.writeText(
-                      withSources(formatAnswer(message.text, message.video, { links: exportLinks, citations }), message.sources, t('answer.sources')),
+                      withSources(formatAnswer(message.text, message.video, { links: exportLinks, transcriptCheck }), message.sources, t('answer.sources')),
                     )
                   } />
               )}

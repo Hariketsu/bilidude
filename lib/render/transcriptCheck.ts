@@ -6,7 +6,7 @@ const END_TOLERANCE_SECONDS = 1;
 const QUOTE_LINES_BEFORE = 2;
 const QUOTE_LINES_AFTER = 4;
 
-export interface Citations {
+export interface TranscriptCheck {
   /** Snaps a cited time to the start of its transcript line; null drops the citation. */
   resolveTime(seconds: number): number | null;
   /** Whether a quote cited at `seconds` appears verbatim around that point. */
@@ -27,7 +27,7 @@ function lineIndexAt(transcript: Transcript, seconds: number): number {
   return index;
 }
 
-export function createCitations(transcript: Transcript, durationSec: number): Citations {
+export function createTranscriptCheck(transcript: Transcript, durationSec: number): TranscriptCheck {
   const { lines } = transcript;
   return {
     resolveTime(seconds) {

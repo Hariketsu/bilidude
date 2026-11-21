@@ -2,7 +2,7 @@ import type { Message as PiMessage } from '@earendil-works/pi-ai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveAsr } from '@/lib/asr/providers';
 import { transcribeVideo } from '@/lib/asr/transcribe';
-import { createCitations } from '@/lib/render/transcriptCheck';
+import { createTranscriptCheck } from '@/lib/render/transcriptCheck';
 import { describeError, describeServiceError, ServiceError } from '@/lib/errors';
 import { saveSession, videoKeyOf, type Session } from '@/lib/storage/db';
 import { t } from '@/lib/i18n';
@@ -76,8 +76,8 @@ export function useChat(settings: Settings | undefined) {
     const timer = setTimeout(save, STREAMING_SAVE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [messages, session, video, generating]);
-  const citations = useMemo(
-    () => (transcript && video ? createCitations(transcript, video.durationSec) : undefined),
+  const transcriptCheck = useMemo(
+    () => (transcript && video ? createTranscriptCheck(transcript, video.durationSec) : undefined),
     [transcript, video],
   );
 
@@ -202,7 +202,7 @@ export function useChat(settings: Settings | undefined) {
     sessionId: session.id,
     messages,
     generating,
-    citations,
+    transcriptCheck,
     /** The video this session is about; undefined until the first message. */
     video,
 
