@@ -1,6 +1,6 @@
-// Blind pairwise judging for the prompt eval (docs/PROMPT-EVAL.md): each version's first-run answer
-// against the baseline's, sides shuffled. Results go to eval/results/<case>/judge-<version>.json.
-//   pnpm eval:judge [--video 1] [--case 1-recap] [--concurrency 4]
+// Blind pairwise judging for the prompt eval (docs/PROMPT-EVAL.md): each version's answer from one run
+// (the first unless --run) against the baseline's from the same run, sides shuffled. Results go to eval/results/<case>/judge-<version>.json.
+//   pnpm eval:judge [--video 1] [--case 1-recap] [--run 2] [--concurrency 4]
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -13,14 +13,14 @@ import type { Judgement } from './report';
 
 const JUDGE_MODEL = 'deepseek-v4-pro';
 const BASELINE = 'v1';
-const VERSIONS = ['v0', 'v2', 'vmin'];
+const VERSIONS = ['v2.1'];
 const MAX_EXCERPT_LINES = 80;
 
 globalThis.requestAnimationFrame ??= (callback) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
 globalThis.cancelAnimationFrame ??= (id) => clearTimeout(id);
 
 const { values: args } = parseArgs({
-  options: { video: { type: 'string' }, case: { type: 'string' }, concurrency: { type: 'string', default: '4' } },
+  options: { video: { type: 'string' }, case: { type: 'string' }, run: { type: 'string', default: '1' }, concurrency: { type: 'string', default: '4' } },
 });
 
 const apiKey = process.env.E2E_LLM_API_KEY;
@@ -36,14 +36,14 @@ const resolved = resolveModel({
   deepseekAuth: 'key',
 })!;
 
-const SYSTEM = `You compare two answers from BiliDude, a browser extension that answers questions about the Bilibili video the user is watching. Answers appear in a narrow side panel next to the video. Timestamps like [03:05] become buttons that seek the video; blockquotes are meant to be verbatim quotes from the transcript, and the panel shows quotes it cannot find in the transcript as ordinary text. [n] marks cite web pages.
+const SYSTEM = `You compare two answers from BiliDude, a browser extension that answers questions about the Bilibili video the user is watching. Timestamps like [03:05] become buttons that seek the video; blockquotes are meant to be verbatim quotes from the transcript, and the panel shows quotes it cannot find in the transcript as ordinary text. [n] marks cite web pages.
 
-Decide which answer a user of this product would rather get for this question. Consider whether it answers what was asked, whether it is accurate to the transcript excerpt, whether its length and structure fit the question and the narrow panel, and whether it follows any format the user asked for. Do not prefer an answer just because it is longer or more detailed. The two answers come from different versions in random order.
+Decide which answer a user of this product would rather get for this question. Consider whether it answers what was asked, whether it is accurate to the transcript excerpt, whether its length and structure fit the question, and whether it follows any format the user asked for. Do not prefer an answer just because it is longer or more detailed. The two answers come from different versions in random order.
 
 Reply with JSON only: {"preference": "A" | "B" | "tie", "reason": "<one sentence in Chinese>"}`;
 
 async function load(c: Case, version: string): Promise<Result | undefined> {
-  const file = new URL(`results/${c.id}/${version}-1.json`, EVAL);
+  const file = new URL(`results/${c.id}/${version}-${args.run}.json`, EVAL);
   return existsSync(file) ? JSON.parse(await readFile(file, 'utf8')) : undefined;
 }
 
@@ -73,7 +73,7 @@ async function judge(c: Case, version: string, material: Material): Promise<{ ju
   const [mine, base] = await Promise.all([load(c, version), load(c, BASELINE)]);
   if (!mine || !base) return undefined;
   // Stable per pair, so a rerun shows the judge the same sides.
-  const swap = createHash('sha1').update(`${c.id}:${version}`).digest()[0]! % 2 === 1;
+  const swap = createHash('sha1').update(`${c.id}:${version}${args.run === '1' ? '' : `:${args.run}`}`).digest()[0]! % 2 === 1;
   const [a, b] = swap ? [base, mine] : [mine, base];
   const { video } = material;
   const prompt = `<video>
@@ -102,7 +102,7 @@ ${conversation(b)}
     model: resolved.model,
     apiKey: resolved.apiKey,
     reasoning: reasoningOption(resolved.model, 'medium'),
-    sessionId: `judge-${c.id}-${version}`,
+    sessionId: `judge-${c.id}-${version}-${args.run}`,
     signal: AbortSignal.timeout(5 * 60_000),
     systemPrompt: SYSTEM,
     history: [],
@@ -127,7 +127,7 @@ async function main() {
     (c) => (!videoFilter || videoFilter.has(String(c.video))) && (!caseFilter || caseFilter.has(c.id)),
   );
   const jobs = cases.flatMap((c) =>
-    VERSIONS.map((version) => ({ c, version, file: new URL(`results/${c.id}/judge-${version}.json`, EVAL) })).filter((j) => !existsSync(j.file)),
+    VERSIONS.map((version) => ({ c, version, file: new URL(`results/${c.id}/judge-${version}${args.run === '1' ? '' : `-${args.run}`}.json`, EVAL) })).filter((j) => !existsSync(j.file)),
   );
   console.log(`${jobs.length} pairs to judge`);
   let cost = 0;

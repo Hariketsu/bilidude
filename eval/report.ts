@@ -15,7 +15,7 @@ import { parseTimestamp, TIMESTAMP_PATTERN } from '@/lib/render/timestamp';
 import { createTranscriptCheck } from '@/lib/render/transcriptCheck';
 import { EVAL, loadCases, loadVideos, type Case, type Result } from './data';
 
-const VERSIONS = ['v0', 'v1', 'v2', 'vmin'];
+const VERSIONS = ['v0', 'v1', 'v2', 'v2.1', 'vmin'];
 const BASELINE = 'v1';
 
 export interface Judgement {
@@ -138,6 +138,7 @@ async function loadResults(): Promise<{ results: Result[]; judgements: Map<strin
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     for (const name of await readdir(new URL(`${entry.name}/`, dir))) {
+      if (name.startsWith('old-')) continue; // Judgements from an earlier judge prompt, kept for reference.
       const data = JSON.parse(await readFile(new URL(`${entry.name}/${name}`, dir), 'utf8'));
       if (name.startsWith('judge-')) judgements.set(entry.name, [...(judgements.get(entry.name) ?? []), data]);
       else results.push(data);

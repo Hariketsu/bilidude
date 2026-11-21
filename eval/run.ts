@@ -13,6 +13,7 @@ import { EVAL, loadCases, loadVideos, type Case, type Result, type Turn } from '
 import * as v0 from './variants/v0';
 import * as v1 from './variants/v1';
 import * as v2 from './variants/v2';
+import * as v2_1 from './variants/v2.1';
 import * as vmin from './variants/vmin';
 
 type Search = 'server' | 'client' | 'off';
@@ -20,7 +21,7 @@ interface Variant {
   buildSystemPrompt(video: VideoRef, transcript: Transcript, outputLanguage: string, search?: Search): string;
   buildUserPrompt(text: string, preset?: PresetId, playbackSeconds?: number): string;
 }
-const VARIANTS = { v0, v1, v2, vmin } as Record<string, Variant>;
+const VARIANTS = { v0, v1, v2, 'v2.1': v2_1, vmin } as Record<string, Variant>;
 
 const MODEL = 'deepseek-flash';
 // What the extension sends with a Simplified Chinese browser (resolveOutputLanguage).
@@ -91,8 +92,8 @@ async function answer(
 
 async function runCase(c: Case, version: string, run: number, material: { video: VideoRef; transcript: Transcript }): Promise<Result> {
   const variant = VARIANTS[version]!;
-  // Search is available (DeepSeek) but off unless the case turns it on; only v2 knows about "off".
-  const search: Search | undefined = c.search ? 'server' : version === 'v2' ? 'off' : undefined;
+  // Search is available (DeepSeek) but off unless the case turns it on; only v2 and v2.1 know about "off".
+  const search: Search | undefined = c.search ? 'server' : version.startsWith('v2') ? 'off' : undefined;
   const systemPrompt = variant.buildSystemPrompt(material.video, material.transcript, OUTPUT_LANGUAGE, search);
   const sessionId = `${c.id}-${version}-${run}`;
   const turns: Turn[] = [];
