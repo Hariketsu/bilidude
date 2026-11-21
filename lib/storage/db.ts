@@ -1,6 +1,6 @@
 import { openDB, type DBSchema } from 'idb';
-import type { ChunkTranscript } from './asr/providers';
-import type { Message, Transcript, VideoRef } from './types';
+import type { ChunkTranscript } from '../asr/providers';
+import type { Message, Transcript, VideoRef } from '../types';
 
 export interface Session {
   id: string;

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { webSearchTool } from '@/lib/llm/search';
+import { webSearchTool } from '@/lib/search/client';
 
 afterEach(() => vi.unstubAllGlobals());
 

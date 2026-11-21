@@ -1,6 +1,6 @@
-import type { Citation } from '../sources';
-import type { SearchSource } from './search';
-import type { TimelineEvent } from './steps';
+import type { Citation } from './sources';
+import type { SearchSource } from './client';
+import type { TimelineEvent } from '../llm/steps';
 
 /**
  * DeepSeek's server-side web search (`deepseek_web_search`) in Chat Completions. pi-ai parses the

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { citedSources, insertCitations, withSources } from '@/lib/sources';
+import { citedSources, insertCitations, withSources } from '@/lib/search/sources';
 
 const page = (n: number) => ({ title: `Page ${n}`, url: `https://example.com/${n}` });
 

@@ -1,4 +1,4 @@
-import type { SearchSource } from '@/lib/llm/search';
+import type { SearchSource } from '@/lib/search/client';
 import { SiteIcon } from './SiteIcon';
 
 export function hostOf(url: string): string {

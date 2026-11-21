@@ -1,5 +1,5 @@
 import { BookText, List, TextQuote, type LucideIcon } from 'lucide-react';
-import type { PresetId } from './types';
+import type { PresetId } from '../lib/types';
 
 /** Labels live in the locale files under `presets.<id>`. */
 export const PRESETS: { id: PresetId; icon: LucideIcon }[] = [

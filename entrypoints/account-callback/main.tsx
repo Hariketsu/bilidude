@@ -2,9 +2,9 @@ import { Check, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
-import { AccountError, completeLogin, fetchWallets, formatYuan, type DeepseekAccount } from '@/lib/deepseekAccount';
+import { AccountError, completeLogin, fetchWallets, formatYuan, type DeepseekAccount } from '@/lib/deepseek/account';
 import { applyUiLanguage } from '@/lib/i18n';
-import { loadSettings, saveSettings } from '@/lib/settings';
+import { loadSettings, saveSettings } from '@/lib/storage/settings';
 import { applyTheme } from '@/lib/theme';
 import '../sidepanel/style.css';
 

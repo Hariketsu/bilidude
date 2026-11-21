@@ -16,8 +16,8 @@ import {
   type DeepseekAccount,
   type LoginAttempt,
   type Wallets,
-} from '@/lib/deepseekAccount';
-import type { Settings } from '@/lib/settings';
+} from '@/lib/deepseek/account';
+import type { Settings } from '@/lib/storage/settings';
 import { Group, Row } from './SettingsUi';
 
 type LlmSettings = Settings['llm'];

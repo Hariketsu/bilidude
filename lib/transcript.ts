@@ -5,7 +5,7 @@ import {
   type BiliSubtitleLine,
   type BiliSubtitleTrack,
 } from './bili/api';
-import { loadStoredTranscript, storeTranscript } from './db';
+import { loadStoredTranscript, storeTranscript } from './storage/db';
 import type { Chapter, Transcript, TranscriptLine, VideoRef } from './types';
 
 /** Target length of one merged line sent to the model (docs/DESIGN.md §5.1). */

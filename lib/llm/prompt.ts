@@ -1,4 +1,4 @@
-import { formatTimestamp } from '../timestamp';
+import { formatTimestamp } from '../render/timestamp';
 import type { PresetId, Transcript, VideoRef } from '../types';
 
 const SOURCE_LABEL: Record<Transcript['source'], string> = {

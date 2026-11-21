@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { SearchSource } from '@/lib/llm/search';
+import type { SearchSource } from '@/lib/search/client';
 import { SourceCard } from './SourceCard';
 
 const ENTER_DELAY = 300;

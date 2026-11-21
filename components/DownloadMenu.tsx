@@ -1,7 +1,7 @@
 import { Captions, Download, FileText, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SubtitleFormat } from '@/lib/subtitles';
+import type { SubtitleFormat } from '@/lib/export/subtitles';
 import type { SubtitleStatus } from '@/lib/types';
 import { IconButton } from './IconButton';
 

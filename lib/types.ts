@@ -1,5 +1,5 @@
 import type { AssistantMessage as PiAssistantMessage, Message as PiMessage } from '@earendil-works/pi-ai';
-import type { SearchSource } from './llm/search';
+import type { SearchSource } from './search/client';
 import type { AnswerStep } from './llm/steps';
 import type { AsrProgress } from './asr/transcribe';
 

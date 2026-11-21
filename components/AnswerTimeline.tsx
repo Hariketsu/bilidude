@@ -1,7 +1,7 @@
 import { ArrowUpRight, AtSign, Atom, Check, ChevronDown, ChevronRight, FileText, Search, SearchX, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SearchSource } from '@/lib/llm/search';
+import type { SearchSource } from '@/lib/search/client';
 import { foundPages, stepStatus, type AnswerStep, type FindStep, type OpenStep, type SearchStep } from '@/lib/llm/steps';
 import type { AssistantMessage } from '@/lib/types';
 import { AttachmentPill } from './AttachmentCard';

@@ -1,6 +1,6 @@
 import type { PhrasingContent, Root } from 'mdast';
 import { visit } from 'unist-util-visit';
-import { CITATION_PATTERN } from './sources';
+import { CITATION_PATTERN } from '../search/sources';
 
 /** Turns `[3]` text into `<bd-cite n="3">` elements, for numbers up to `count` (the answer's sources). */
 export function remarkCitations({ count }: { count: number }) {

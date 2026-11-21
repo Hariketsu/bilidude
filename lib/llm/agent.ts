@@ -1,10 +1,10 @@
 import { agentLoop, type AgentTool } from '@earendil-works/pi-agent-core';
 import type { Api, AssistantMessage, Message, Model, ThinkingLevel } from '@earendil-works/pi-ai';
-import { insertCitations, numberSources, type Citation } from '../sources';
-import { withAccountAuth } from '../deepseekAccount';
-import { DEEPSEEK_SEARCH_TOOL, watchServerTools } from './deepseekServerTools';
+import { insertCitations, numberSources, type Citation } from '../search/sources';
+import { withAccountAuth } from '../deepseek/account';
+import { DEEPSEEK_SEARCH_TOOL, watchServerTools } from '../search/deepseekServer';
 import { streamChat } from './providers';
-import type { SearchSource } from './search';
+import type { SearchSource } from '../search/client';
 import { applyEvent, type AnswerStep, type TimelineEvent } from './steps';
 
 /** Tool rounds per answer; past this, tool calls are refused so the model answers with what it has. */

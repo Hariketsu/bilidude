@@ -3,7 +3,7 @@ import { concatFrames } from './aac';
 import { aacToWav } from './wav';
 import { ServiceError, serviceFetch } from '../errors';
 import { t } from '../i18n';
-import { deepseekAuthHeaders, deepseekCredential, type DeepseekCredential } from '../deepseekAccount';
+import { deepseekAuthHeaders, deepseekCredential, type DeepseekCredential } from '../deepseek/account';
 
 export type AsrProviderId = 'bcut' | 'deepseek' | 'openai' | 'groq' | 'siliconflow' | 'dashscope' | 'custom';
 export type DashscopeRegion = 'cn-beijing' | 'ap-southeast-1';

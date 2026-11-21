@@ -11,7 +11,7 @@ import {
   resolveModel,
   thinkingLevels,
 } from '@/lib/llm/providers';
-import type { Settings } from '@/lib/settings';
+import type { Settings } from '@/lib/storage/settings';
 import { AccountLoginRow } from './DeepseekAccount';
 import { HostAccess, requestHostAccess } from './HostAccess';
 import { Group, Row, Select, TextInput } from './SettingsUi';

@@ -1,11 +1,11 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { useEffect, useState } from 'react';
-import { DEFAULT_ASR_SETTINGS, type AsrSettings } from './asr/providers';
+import { DEFAULT_ASR_SETTINGS, type AsrSettings } from '../asr/providers';
 import { DEFAULT_CACHE_POLICY, type CachePolicy } from './cache';
-import { resolveUiLanguage, type UiLanguageSetting } from './i18n';
-import type { ExportBundle } from './batchExport';
-import { deepseekCredential, type DeepseekAccount } from './deepseekAccount';
-import type { ThemePreference } from './theme';
+import { resolveUiLanguage, type UiLanguageSetting } from '../i18n';
+import type { ExportBundle } from '../export/batch';
+import { deepseekCredential, type DeepseekAccount } from '../deepseek/account';
+import type { ThemePreference } from '../theme';
 
 export interface Settings {
   llm: {
@@ -25,7 +25,7 @@ export interface Settings {
     webSearch: boolean;
     /** How DeepSeek is reached: the signed-in account (experimental) or an API key. */
     deepseekAuth: 'account' | 'key';
-    /** The signed-in DeepSeek account; see lib/deepseekAccount.ts. */
+    /** The signed-in DeepSeek account; see lib/deepseek/account.ts. */
     deepseekAccount?: DeepseekAccount;
   };
   /** Interface language; `auto` follows the browser. */

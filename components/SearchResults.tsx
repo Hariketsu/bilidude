@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { SearchSource } from '@/lib/llm/search';
+import type { SearchSource } from '@/lib/search/client';
 import { IconButton } from './IconButton';
 import { SiteIcons } from './SiteIcon';
 import { SourceCard } from './SourceCard';

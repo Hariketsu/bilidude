@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { deepseekCredential } from '@/lib/deepseekAccount';
-import type { Settings } from '@/lib/settings';
+import { deepseekCredential } from '@/lib/deepseek/account';
+import type { Settings } from '@/lib/storage/settings';
 import { Group, Hint, TextInput } from './SettingsUi';
 
 /** The DeepSeek key behind web search, which models from other providers need on its own. */

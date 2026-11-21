@@ -1,7 +1,7 @@
 import type { Blockquote, PhrasingContent, Root } from 'mdast';
 import { toString } from 'mdast-util-to-string';
 import { visit } from 'unist-util-visit';
-import type { Citations } from './citations';
+import type { Citations } from './transcriptCheck';
 import { parseTimestamp, TIMESTAMP_PATTERN } from './timestamp';
 
 const QUOTED_TEXT = /[“"「『]([^”"」』]+)[”"」』]/;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { loadTranscripts, uniqueVideos, type ExportBundle, type ExportFormat } from '@/lib/batchExport';
-import type { Session } from '@/lib/db';
+import { loadTranscripts, uniqueVideos, type ExportBundle, type ExportFormat } from '@/lib/export/batch';
+import type { Session } from '@/lib/storage/db';
 import type { VideoRef } from '@/lib/types';
 
 const FORMATS = [

@@ -1,5 +1,5 @@
 import { fetchPlayerInfo } from '../bili/api';
-import { deleteAsrChunks, loadAsrChunk, storeAsrChunk, storeTranscript } from '../db';
+import { deleteAsrChunks, loadAsrChunk, storeAsrChunk, storeTranscript } from '../storage/db';
 import { mergeLines, parseAuthorChapters, rememberTranscript, toCues } from '../transcript';
 import type { Transcript, VideoRef } from '../types';
 import { splitAac } from './aac';

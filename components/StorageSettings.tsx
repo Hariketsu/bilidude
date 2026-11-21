@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CACHE_DAYS, CACHE_MEGABYTES, cacheUsage, clearCache, pruneCache, type CachePolicy } from '@/lib/cache';
+import { CACHE_DAYS, CACHE_MEGABYTES, cacheUsage, clearCache, pruneCache, type CachePolicy } from '@/lib/storage/cache';
 import { Group, Row, Select } from './SettingsUi';
 
 function formatBytes(bytes: number): string {

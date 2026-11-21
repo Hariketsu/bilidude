@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { getPreset } from '@/lib/presets';
+import { getPreset } from './presets';
 import type { PresetId } from '@/lib/types';
 
 export function PresetChip({

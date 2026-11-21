@@ -8,7 +8,7 @@ import {
   platformRequest,
   withAccountAuth,
   type DeepseekAccount,
-} from '@/lib/deepseekAccount';
+} from '@/lib/deepseek/account';
 
 beforeEach(() => {
   // Not implemented by the fake browser.

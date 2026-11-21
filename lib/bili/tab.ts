@@ -1,5 +1,5 @@
-import { buildVideoUrl, parseVideoUrl } from './bili/url';
-import type { VideoRef } from './types';
+import { buildVideoUrl, parseVideoUrl } from './url';
+import type { VideoRef } from '../types';
 
 async function getActiveTab() {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });

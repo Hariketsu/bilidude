@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { applyUiLanguage } from '@/lib/i18n';
-import { loadSettings } from '@/lib/settings';
+import { loadSettings } from '@/lib/storage/settings';
 import { applyTheme } from '@/lib/theme';
 import './style.css';
 

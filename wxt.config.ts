@@ -28,7 +28,7 @@ export default defineConfig({
       'https://generativelanguage.googleapis.com/*',
       'https://openrouter.ai/*',
       'https://api.deepseek.com/*',
-      // DeepSeek account login and balance (lib/deepseekAccount.ts)
+      // DeepSeek account login and balance (lib/deepseek/account.ts)
       'https://platform.deepseek.com/*',
       // The login's loopback callback, which a DNR rule redirects back to the extension
       'http://127.0.0.1/*',

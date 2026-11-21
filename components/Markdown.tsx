@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Citations } from '@/lib/citations';
-import type { SearchSource } from '@/lib/llm/search';
-import { remarkCitations } from '@/lib/remark-citations';
-import { remarkTimestamps } from '@/lib/remark-timestamps';
+import type { Citations } from '@/lib/render/transcriptCheck';
+import type { SearchSource } from '@/lib/search/client';
+import { remarkCitations } from '@/lib/render/remark-citations';
+import { remarkTimestamps } from '@/lib/render/remark-timestamps';
 import { CitationChip } from './CitationChip';
 import { TimestampChip } from './TimestampChip';
 

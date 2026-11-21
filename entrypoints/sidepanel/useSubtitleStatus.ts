@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { resolveAsr } from '@/lib/asr/providers';
 import { watchTranscription, type AsrProgress } from '@/lib/asr/transcribe';
-import type { Settings } from '@/lib/settings';
+import type { Settings } from '@/lib/storage/settings';
 import { getTranscript } from '@/lib/transcript';
 import type { SubtitleAvailability, SubtitleStatus, VideoRef } from '@/lib/types';
 

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { watchServerTools, type ServerEvent } from '@/lib/llm/deepseekServerTools';
+import { watchServerTools, type ServerEvent } from '@/lib/search/deepseekServer';
 import { applyEvent, type AnswerStep, type TimelineEvent } from '@/lib/llm/steps';
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url));

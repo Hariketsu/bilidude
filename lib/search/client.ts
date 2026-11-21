@@ -1,5 +1,5 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
-import { deepseekAuthHeaders, type DeepseekCredential } from '../deepseekAccount';
+import { deepseekAuthHeaders, type DeepseekCredential } from '../deepseek/account';
 import { ServiceError, serviceFetch } from '../errors';
 
 const SEARCH_URL = 'https://api.deepseek.com/v1/tools/search';

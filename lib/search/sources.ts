@@ -1,5 +1,5 @@
-import type { SearchSource } from './llm/search';
-import { foundPages, type AnswerStep } from './llm/steps';
+import type { SearchSource } from './client';
+import { foundPages, type AnswerStep } from '../llm/steps';
 
 /** A page DeepSeek's server-side search cites; `end` is where the cited text ends, in code points of that turn's text. */
 export interface Citation extends SearchSource {

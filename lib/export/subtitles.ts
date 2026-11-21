@@ -1,5 +1,5 @@
-import { fileNameFor, saveTextFile } from './export';
-import type { Transcript, TranscriptLine, VideoRef } from './types';
+import { fileNameFor, saveTextFile } from './session';
+import type { Transcript, TranscriptLine, VideoRef } from '../types';
 
 export type SubtitleFormat = 'srt' | 'txt';
 

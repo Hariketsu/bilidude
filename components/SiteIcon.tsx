@@ -1,6 +1,6 @@
 import { Link } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import type { SearchSource } from '@/lib/llm/search';
+import type { SearchSource } from '@/lib/search/client';
 
 /**
  * The site's icon: a grey placeholder while it loads, a link icon when there is none or it

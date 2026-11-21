@@ -7,8 +7,8 @@ import { googleProvider } from '@earendil-works/pi-ai/providers/google';
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai';
 import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript';
-import type { Settings } from '../settings';
-import { deepseekCredential } from '../deepseekAccount';
+import type { Settings } from '../storage/settings';
+import { deepseekCredential } from '../deepseek/account';
 
 export const CUSTOM_PROVIDER = 'custom';
 

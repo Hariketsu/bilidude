@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UI_LANGUAGE_NAMES, UI_LANGUAGES } from '@/lib/i18n';
-import { saveSettings, type Settings } from '@/lib/settings';
+import { saveSettings, type Settings } from '@/lib/storage/settings';
 import type { ThemePreference } from '@/lib/theme';
 import { AccountCard } from './DeepseekAccount';
 import { IconButton } from './IconButton';

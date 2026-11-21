@@ -1,4 +1,4 @@
-import { formatTimestamp } from '@/lib/timestamp';
+import { formatTimestamp } from '@/lib/render/timestamp';
 import { BiliIcon } from './BiliIcon';
 
 export function TimestampChip({ seconds, onSeek }: { seconds: number; onSeek?: (seconds: number) => void }) {

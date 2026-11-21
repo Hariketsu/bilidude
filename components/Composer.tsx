@@ -2,7 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { ArrowUp, Square, X } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPreset } from '@/lib/presets';
+import { getPreset } from './presets';
 import type { PresetId, VideoRef } from '@/lib/types';
 import { SearchToggle } from './SearchToggle';
 import { ThinkingPicker } from './ThinkingPicker';

@@ -1,4 +1,4 @@
-import type { SearchSource } from './search';
+import type { SearchSource } from '../search/client';
 
 /**
  * What happened while an answer was prepared, in order: thinking, web searches, pages opened

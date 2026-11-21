@@ -1,9 +1,9 @@
-import { createCitations, type Citations } from './citations';
-import { loadStoredTranscript, type Session } from './db';
-import { t } from './i18n';
-import { withSources } from './sources';
-import { formatTimestamp, parseTimestamp, TIMESTAMP_PATTERN } from './timestamp';
-import type { VideoRef } from './types';
+import { createCitations, type Citations } from '../render/transcriptCheck';
+import { loadStoredTranscript, type Session } from '../storage/db';
+import { t } from '../i18n';
+import { withSources } from '../search/sources';
+import { formatTimestamp, parseTimestamp, TIMESTAMP_PATTERN } from '../render/timestamp';
+import type { VideoRef } from '../types';
 
 export interface ExportOptions {
   /** Write timestamps as links that open the video at that moment. */

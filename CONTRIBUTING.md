@@ -42,12 +42,15 @@ entrypoints/
   sidepanel/            应用本体：App.tsx、useChat（回答）、useActiveVideo（跟踪标签页）
 components/             界面组件
 lib/
-  bili/                 B 站链接解析与 Web API
+  bili/                 B 站链接解析、Web API、标签页
   transcript.ts         字幕加载与合并
-  llm/                  模型服务商（pi-ai）与 prompt
+  llm/                  模型服务商（pi-ai）、prompt、agent 循环
+  search/               联网搜索（客户端工具、DeepSeek 服务端搜索）与来源编号
+  deepseek/             DeepSeek 账号登录
   asr/                  音频下载、AAC 切片、转写服务
-  citations.ts          时间戳与引文校验
-  db.ts                 IndexedDB：对话、字幕、转写缓存
+  render/               回答里的时间戳、引用角标，以及时间戳与引文校验
+  storage/              IndexedDB（对话、字幕、转写缓存）、缓存清理、设置
+  export/               导出对话和字幕
 tests/e2e/              Playwright 测试
 docs/DESIGN.md          设计说明与决策记录
 ```

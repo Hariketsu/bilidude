@@ -1,4 +1,4 @@
-import type { Transcript } from './types';
+import type { Transcript } from '../types';
 
 /** How far past the video end a timestamp may point before it is dropped. */
 const END_TOLERANCE_SECONDS = 1;

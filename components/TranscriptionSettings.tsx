@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { ASR_PROVIDERS, getAsrProvider, resolveAsr, type AsrProviderId, type AsrSettings } from '@/lib/asr/providers';
-import { deepseekCredential } from '@/lib/deepseekAccount';
-import type { Settings } from '@/lib/settings';
+import { deepseekCredential } from '@/lib/deepseek/account';
+import type { Settings } from '@/lib/storage/settings';
 import { HostAccess } from './HostAccess';
 
 type LlmSettings = Settings['llm'];

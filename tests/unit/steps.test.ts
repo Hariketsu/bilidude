@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyEvent, foundPages, stepStatus, type AnswerStep, type TimelineEvent } from '@/lib/llm/steps';
-import { numberSources } from '@/lib/sources';
+import { numberSources } from '@/lib/search/sources';
 
 const page = (n: number) => ({ title: `Page ${n}`, url: `https://example.com/${n}` });
 const reduce = (events: TimelineEvent[]) => events.reduce<AnswerStep[]>(applyEvent, []);
