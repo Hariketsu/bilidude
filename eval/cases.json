@@ -1,0 +1,52 @@
+{
+  "$comment": "Prompt eval cases (docs/PROMPT-EVAL.md). `video` is the number prefix of a file in eval/videos/. `playback` is in seconds. Web search is available but off unless `search` is true. `followUp` is asked after the first answer, with it as history.",
+  "cases": [
+    { "id": "1-recap", "video": 1, "category": "preset", "preset": "recap" },
+    { "id": "1-480", "video": 1, "category": "short", "text": "公式里的 480 是怎么来的？" },
+    { "id": "1-here", "video": 1, "category": "playback", "text": "这里说的是什么意思？", "playback": 310 },
+    { "id": "1-costs", "video": 1, "category": "table", "text": "视频里单算的几项大开销（育儿、医疗、住房）分别要多少钱？" },
+    { "id": "1-mom", "video": 1, "category": "format", "text": "用三句大白话总结一下，我要转给我妈看" },
+    { "id": "1-rate-off", "video": 1, "category": "external-off", "text": "现在银行一年定期存款利率是多少？跟视频里说的比变了吗？" },
+    { "id": "1-rate-on", "video": 1, "category": "external-on", "text": "现在银行一年定期存款利率是多少？跟视频里说的比变了吗？", "search": true },
+    { "id": "1-5000", "video": 1, "category": "follow-up", "text": "如果我每个月花 5000，按视频的公式要攒多少钱？", "followUp": "那要是再养一个孩子呢？" },
+
+    { "id": "2-quotes", "video": 2, "category": "preset", "preset": "quotes" },
+    { "id": "2-attention", "video": 2, "category": "short", "text": "张昕觉得人的注意力时长真的变短了吗？" },
+    { "id": "2-parents", "video": 2, "category": "quote", "text": "她讲“不可预测的家长”那段，原话是怎么说的？" },
+    { "id": "2-dopamine", "video": 2, "category": "outside", "text": "多巴胺和内啡肽有什么区别？" },
+    { "id": "2-addiction", "video": 2, "category": "playback", "text": "这段说的成瘾标准是哪几条？", "playback": 880 },
+    { "id": "2-buzzwords", "video": 2, "category": "table", "text": "节目里提到的几个流行心理学词（比如 NPD、脑腐）各是什么意思，科学上站得住吗？" },
+    { "id": "2-sdt", "video": 2, "category": "follow-up", "text": "自我决定论说的三个需求是什么？", "followUp": "那家长具体怎么满足第二个？" },
+
+    { "id": "3-recap", "video": 3, "category": "preset", "preset": "recap" },
+    { "id": "3-driving", "video": 3, "category": "short", "text": "老戴觉得 GTA6 的开车手感跟五代比怎么样？" },
+    { "id": "3-here", "video": 3, "category": "playback", "text": "现在这段在干嘛？", "playback": 980 },
+    { "id": "3-pc-off", "video": 3, "category": "external-off", "text": "GTA6 出 PC 版了吗？" },
+    { "id": "3-pc-on", "video": 3, "category": "external-on", "text": "GTA6 出 PC 版了吗？", "search": true },
+    { "id": "3-birthday", "video": 3, "category": "outside", "text": "帮我写一条祝老戴生日快乐的弹幕" },
+    { "id": "3-opening", "video": 3, "category": "quote", "text": "开播前他激动地说了些什么？给我原话" },
+
+    { "id": "4-toc", "video": 4, "category": "preset", "preset": "toc" },
+    { "id": "4-quotes", "video": 4, "category": "preset", "preset": "quotes" },
+    { "id": "4-anticheat", "video": 4, "category": "short", "text": "带内核级反作弊的游戏怎么办？" },
+    { "id": "4-apps", "video": 4, "category": "table", "text": "视频里提到的 Windows 软件在 Linux 上分别用什么替代？" },
+    { "id": "4-english", "video": 4, "category": "format", "text": "Answer in English: what are the steps to switch, in order?" },
+    { "id": "4-backup", "video": 4, "category": "follow-up", "text": "装 Linux 之前要备份哪些东西？", "followUp": "我既没有 NAS 也没有网盘呢？" },
+    { "id": "4-nvk-on", "video": 4, "category": "external-on", "text": "视频里说的 NVK 驱动现在进展到哪了？", "search": true },
+
+    { "id": "5-toc", "video": 5, "category": "preset", "preset": "toc" },
+    { "id": "5-recap", "video": 5, "category": "preset", "preset": "recap" },
+    { "id": "5-angle", "video": 5, "category": "short", "text": "灵光这次发布选的切口是什么？" },
+    { "id": "5-here", "video": 5, "category": "playback", "text": "他们这会儿在聊什么？", "playback": 9240 },
+    { "id": "5-products", "video": 5, "category": "table", "text": "节目里提到的几个 Personal Agent 产品各有什么特点？" },
+    { "id": "5-market", "video": 5, "category": "quote", "text": "“市场是打出来的”，嘉宾原话是怎么说的？" },
+    { "id": "5-gala-off", "video": 5, "category": "external-off", "text": "今年春晚真的打起 Personal Agent 补贴大战了吗？" },
+    { "id": "5-gala-on", "video": 5, "category": "external-on", "text": "今年春晚真的打起 Personal Agent 补贴大战了吗？", "search": true },
+
+    { "id": "6-recap", "video": 6, "category": "preset", "preset": "recap" },
+    { "id": "6-ending", "video": 6, "category": "short", "text": "结局谁死了？" },
+    { "id": "6-breakdown", "video": 6, "category": "quote", "text": "Speed 最崩溃的时候说了什么？" },
+    { "id": "6-allnighter", "video": 6, "category": "outside", "text": "通宵之后怎么恢复得快一点？" },
+    { "id": "6-worth", "video": 6, "category": "format", "text": "一句话告诉我值不值得看" }
+  ]
+}

@@ -12,7 +12,10 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "test:e2e": "wxt build && playwright test",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "eval": "node --env-file-if-exists=.env.local --no-warnings --import ./eval/loader.mjs eval/run.ts",
+    "eval:judge": "node --env-file-if-exists=.env.local --no-warnings --import ./eval/loader.mjs eval/judge.ts",
+    "eval:report": "node --no-warnings --import ./eval/loader.mjs eval/report.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "1.5.2",
