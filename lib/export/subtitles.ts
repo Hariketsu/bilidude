@@ -1,7 +1,8 @@
 import { fileNameFor, saveTextFile } from './session';
 import type { Transcript, TranscriptLine, VideoRef } from '../types';
+import { toVideoJson } from './videoJson';
 
-export type SubtitleFormat = 'srt' | 'txt';
+export type SubtitleFormat = 'srt' | 'txt' | 'json';
 
 /** `65.5` → `00:01:05,500`. */
 function srtTime(seconds: number): string {
@@ -21,6 +22,7 @@ export function toTxt(cues: TranscriptLine[]): string {
 
 /** The video's subtitles as a file; transcripts cached before cues were kept fall back to the merged lines. */
 export function subtitleFile(video: VideoRef, transcript: Transcript, format: SubtitleFormat) {
+  if (format === 'json') return { name: fileNameFor(video, 'json'), text: toVideoJson(video, transcript), type: 'application/json' };
   const cues = transcript.cues ?? transcript.lines;
   return format === 'srt'
     ? { name: fileNameFor(video, 'srt'), text: toSrt(cues), type: 'application/x-subrip' }

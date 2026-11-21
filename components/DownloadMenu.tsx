@@ -1,4 +1,4 @@
-import { Captions, Download, FileText, type LucideIcon } from 'lucide-react';
+import { Captions, Download, FileJson, FileText, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SubtitleFormat } from '@/lib/export/subtitles';
@@ -82,6 +82,12 @@ export function DownloadMenu({
             label={t('download.txt')}
             disabled={subtitles === undefined || subtitles === 'off'}
             onClick={run(() => onDownloadSubtitles('txt'))}
+          />
+          <Item
+            icon={FileJson}
+            label={t('download.json')}
+            disabled={subtitles === undefined || subtitles === 'off'}
+            onClick={run(() => onDownloadSubtitles('json'))}
           />
           {subtitleNote && <p className="px-3 pt-1 pb-2 text-xs leading-relaxed text-fg-muted">{subtitleNote}</p>}
           {subtitles === 'off' && (

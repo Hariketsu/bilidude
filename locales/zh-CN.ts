@@ -186,6 +186,7 @@ const zhCN: Messages = {
     conversation: '对话（.md）',
     srt: '字幕（.srt）',
     txt: '字幕纯文本（.txt）',
+    json: '视频信息和字幕（.json）',
     checking: '正在检查字幕…',
     willTranscribe: '没有字幕，将先转写音频再下载。',
     transcriptionOff: '没有字幕。开启语音转写后即可获取。',

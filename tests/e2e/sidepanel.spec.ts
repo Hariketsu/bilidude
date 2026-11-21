@@ -212,6 +212,24 @@ test('downloads the subtitles as SRT, line by line', async ({ context, extension
   expect(srt.startsWith('1\n00:00:00,000 --> 00:00:05,500\n大家好，今天我们聊一聊番茄工作法\n\n2\n00:00:06,000 --> ')).toBe(true);
 });
 
+test('downloads the video info and the subtitles the model reads as JSON', async ({ context, extensionId }) => {
+  await mockSubtitles(context);
+  const { panel } = await openPanel(context, extensionId);
+  await configure(panel, MOCK_LLM);
+
+  await panel.getByRole('button', { name: 'Download' }).click();
+  const download = panel.waitForEvent('download');
+  await panel.getByRole('menuitem', { name: 'Video info and subtitles (.json)' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/\.json$/);
+  const { video, transcript } = JSON.parse(await readFile((await file.path())!, 'utf8'));
+  expect(video.title).toContain('Never Gonna Give You Up');
+  expect(transcript.source).toBe('ai');
+  // The merged ~12 s lines, as in the prompt.
+  expect(transcript.lines[1].from).toBe(12);
+  expect(transcript.cues).toBeUndefined();
+});
+
 test('offers to turn on transcription when a video has no subtitles', async ({ context, extensionId }) => {
   await mockNoSubtitles(context);
   const { panel } = await openPanel(context, extensionId);

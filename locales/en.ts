@@ -186,6 +186,7 @@ const en = {
     conversation: 'Conversation (.md)',
     srt: 'Subtitles (.srt)',
     txt: 'Subtitles as text (.txt)',
+    json: 'Video info and subtitles (.json)',
     checking: 'Checking for subtitles…',
     willTranscribe: 'No subtitles. The audio will be transcribed first, then downloaded.',
     transcriptionOff: 'No subtitles. Turn on audio transcription to get them.',

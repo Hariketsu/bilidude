@@ -186,6 +186,7 @@ const zhTW: Messages = {
     conversation: '對話（.md）',
     srt: '字幕（.srt）',
     txt: '字幕純文字（.txt）',
+    json: '影片資訊和字幕（.json）',
     checking: '正在檢查字幕…',
     willTranscribe: '沒有字幕，會先轉錄音訊再下載。',
     transcriptionOff: '沒有字幕。開啟語音轉錄後即可取得。',

@@ -8,6 +8,7 @@ const FORMATS = [
   { id: 'md', label: 'download.conversation' },
   { id: 'srt', label: 'download.srt' },
   { id: 'txt', label: 'download.txt' },
+  { id: 'json', label: 'download.json' },
 ] as const satisfies { id: ExportFormat; label: string }[];
 
 export interface ExportChoice {
