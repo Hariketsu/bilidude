@@ -36,9 +36,12 @@ export function listModels(providerId: string): readonly Model<Api>[] {
 
 /** The endpoint answered, but not with a usable model list. */
 export class ModelListError extends Error {
-  constructor(readonly status: number) {
+  readonly status: number;
+
+  constructor(status: number) {
     super(`Model list request failed with HTTP ${status}`);
     this.name = 'ModelListError';
+    this.status = status;
   }
 }
 

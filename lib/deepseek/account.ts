@@ -69,12 +69,12 @@ function clientHeaders(): Record<string, string> {
 }
 
 export class AccountError extends Error {
-  constructor(
-    readonly code: 'unauthorized' | 'network' | 'business' | 'protocol' | 'state',
-    message: string,
-  ) {
+  readonly code: 'unauthorized' | 'network' | 'business' | 'protocol' | 'state';
+
+  constructor(code: AccountError['code'], message: string) {
     super(message);
     this.name = 'AccountError';
+    this.code = code;
   }
 }
 
