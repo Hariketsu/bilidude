@@ -31,9 +31,9 @@
 
 ![BiliDude 截图](docs/images/screenshot.jpg)
 
-BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选的大模型，然后回答关于这个视频的问题。可以一键要总结、目录或金句，也可以直接问。回答里的时间戳点一下，视频就跳过去。
+BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选的大模型来总结或提问。可以一键生成总结、目录和金句，也可以直接追问；回答里的时间戳点一下，视频就会跳过去。
 
-没有字幕的视频可以先转写音频。
+现已支持直接登录 DeepSeek 账号，免填 Key 即可使用对话、语音转写和联网搜索；也可以接入其他模型服务商或本地模型。
 
 ## 安装
 
@@ -47,7 +47,7 @@ BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选
 
 ## 使用
 
-点工具栏上的图标打开侧边栏，第一次使用时选一个模型服务商并填入 API Key。内置 DeepSeek、OpenAI、Anthropic、Google Gemini 和 OpenRouter，也可以接任何 OpenAI 兼容接口，比如本地的 LM Studio、Strata 或 Ollama。
+点工具栏上的图标打开侧边栏。第一次使用时选择模型服务商：DeepSeek 支持直接登录账号使用（实验性），也可以切换到 API Key；另外内置了 OpenAI、Anthropic、Google Gemini 和 OpenRouter，也支持任何 OpenAI 兼容接口，比如本地的 LM Studio、Strata 或 Ollama。
 
 每个服务商都可以改 Base URL，接同一协议的代理或网关：
 
@@ -58,15 +58,17 @@ BiliDude 是一个 Chrome 扩展。它读取当前视频的字幕，交给你选
 
 B 站只给登录用户提供 AI 字幕，所以请在同一个浏览器里登录 bilibili.com。
 
-模型选 DeepSeek 时，没有字幕的视频默认用 DeepSeek 转写音频，共用同一个 API Key。其他情况下音频转写在设置里打开，可以用必剪、DeepSeek、OpenAI、Groq、阿里云百炼、硅基流动或 OpenAI 兼容服务。
+模型选 DeepSeek 时，没有字幕的视频默认用 DeepSeek 转写音频，共用同一个账号或 API Key。其他情况下音频转写在设置里打开，可以用必剪、DeepSeek、OpenAI、Groq、阿里云百炼、硅基流动或 OpenAI 兼容服务。
+
+点输入框旁的地球图标可以开启联网搜索。模型选 DeepSeek 时直接走其服务端搜索；使用其他模型时，可以在设置里单独填写 DeepSeek Key 或登录 DeepSeek 账号来启用搜索。
 
 界面有简体中文、繁体中文和英文，回答的语言可以单独设置。
 
 ## 隐私
 
-BiliDude 没有服务器，不收集任何数据。API Key 只保存在浏览器本地。
+BiliDude 没有服务器，不收集任何数据。API Key 和 DeepSeek 账号凭证只保存在浏览器本地，仅用于直接请求对应的服务商接口。
 
-提问时，视频的标题、简介、章节、字幕和之前的对话会发给你选的模型服务商。转写时，音频会发给你选的转写服务。对话记录和字幕保存在浏览器本地。
+提问时，视频的标题、简介、章节、字幕和之前的对话会发给你选的模型服务商；开启联网搜索时，模型生成的搜索词会发往 DeepSeek 搜索服务；转写时，音频会发给你选的转写服务。对话记录和字幕保存在浏览器本地。
 
 ## 常见问题
 
@@ -90,7 +92,7 @@ bilibili.com 的普通视频（`/video/BV…`、`/video/av…`，包括分 P）�
 
 ## 开发
 
-见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+见 [CONTRIBUTING.md](CONTRIBUTING.md)。提示词的评测方法与演进记录见 [docs/PROMPT-EVAL.md](docs/PROMPT-EVAL.md)。
 
 ## 致谢
 
