@@ -2,10 +2,13 @@
 
 ## Working agreements
 
+- Discuss before coding when there are design trade-offs: lay out options with a recommendation. For UI changes, get sign-off on a prototype or screenshot first.
+- Use Chinese for conversation and commit messages; use English for code, comments, and default UI copy (keep locale files in sync).
+- Prefer TDD: agree on test seams, write failing tests first, then make them pass. Report honestly what was verified for real versus mocked or run only after implementation.
 - Commit finished work in logical batches without asking: Conventional Commits in Chinese, the reason in the body. The maintainer reviews commit by commit. Ask before every push.
 - Keep a git-ignored `HANDOFF.md` at the repo root: current state, what was verified for real and what only with mocks, gotchas, open items. Read it first in a new session; update it when the state changes.
-- User-facing docs (README and the like) read as written by a person: no emoji headings, no callout boxes, no "**label** — explanation" bullets, no trailing justifications, each fact said once. A lively header (logo, tagline, badges) is fine. The Chinese README is primary; sync the English one after.
-- Ask before editing prompt text in `lib/llm/`. Back every prompt change with evidence: compare the old and new versions on a fixed, varied set of real cases with repeated runs (`docs/PROMPT-EVAL.md`), not on one or two answers. A category that gets worse is not traded for another that gets better.
+- Keep user-facing docs (README and the like) concise, restrained, and natural—avoid AI boilerplate and saying the same thing twice. The Chinese README is primary; sync the English one after.
+- Ask before editing prompt text in `lib/llm/`. Design prompts for product scenarios and generalization, not to game a fixed test set. Verify changes against real cases (`docs/PROMPT-EVAL.md`): hard contracts (renderer/tool formats, explicit user language/format requests) must not regress; style and experience trade-offs are judged holistically by the maintainer from the comparison report.
 
 ## Release
 
