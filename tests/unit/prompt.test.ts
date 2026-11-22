@@ -15,11 +15,18 @@ describe('buildSystemPrompt', () => {
     expect(buildSystemPrompt(video, transcript, 'English', 'server')).toBe(today);
   });
 
-  it('puts the web search rules after the transcript, so turning search on keeps the cached part before it', () => {
+  it('puts the web search rules after the transcript, so toggling search keeps the cached part before it', () => {
     const plain = buildSystemPrompt(video, transcript, 'English');
-    const withSearch = buildSystemPrompt(video, transcript, 'English', 'client');
-    expect(withSearch.startsWith(plain)).toBe(true);
-    expect(withSearch.indexOf('# Web search')).toBeGreaterThan(withSearch.indexOf('</transcript>'));
+    const searchOff = buildSystemPrompt(video, transcript, 'English', 'off');
+    const withClient = buildSystemPrompt(video, transcript, 'English', 'client');
+    const withServer = buildSystemPrompt(video, transcript, 'English', 'server');
+    for (const variant of [searchOff, withClient, withServer]) {
+      expect(variant.startsWith(plain)).toBe(true);
+      expect(variant.indexOf('# Web search')).toBeGreaterThan(variant.indexOf('</transcript>'));
+    }
+    expect(searchOff).toContain('globe button');
+    expect(withClient).toContain('like [3]');
+    expect(withServer).toContain('do not write [n]');
   });
 });
 

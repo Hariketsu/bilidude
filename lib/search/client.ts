@@ -62,7 +62,7 @@ export function webSearchTool(credential: DeepseekCredential): AgentTool<any, Se
     name: 'web_search',
     label: 'Web search',
     description:
-      'Search the web. Use it to check names, terms or facts the transcript may have wrong, or for context the video does not give.',
+      'Search the web and return numbered results ([1], [2], …) with titles, URLs, dates, and summaries. Use it to verify names, terms, or facts the transcript may have wrong, or for up-to-date context outside the video. Do not use it for information already in the transcript; keep queries focused and within a few calls per answer.',
     parameters,
     async execute(_id, { query }: { query: string }, signal) {
       const results = await searchWeb(query, credential, signal);

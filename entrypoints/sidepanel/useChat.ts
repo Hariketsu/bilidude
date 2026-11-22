@@ -134,10 +134,11 @@ export function useChat(settings: Settings | undefined) {
     setTranscript(loaded);
 
     const { model, apiKey } = resolved;
-    const webSearch = settings.llm.webSearch && searchAvailable(settings.llm);
+    const canSearch = searchAvailable(settings.llm);
+    const webSearch = settings.llm.webSearch && canSearch;
     // DeepSeek searches on its side, free of charge; other models call the Search API through a tool.
     const serverSearch = webSearch && model.provider === 'deepseek';
-    const search = webSearch ? (serverSearch ? 'server' : 'client') : undefined;
+    const search = webSearch ? (serverSearch ? 'server' : 'client') : canSearch ? 'off' : undefined;
     const systemPrompt = buildSystemPrompt(target, loaded, resolveOutputLanguage(settings), search);
     if (estimateTokens(systemPrompt) + RESERVED_TOKENS > model.contextWindow) {
       update(id, { status: 'error', error: t('errors.tooLong', { model: model.name }) });
