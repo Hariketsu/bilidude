@@ -1,5 +1,5 @@
 // Runs the prompt eval's cases against each prompt version (docs/PROMPT-EVAL.md).
-//   pnpm eval [--video 1,2] [--case 1-recap] [--versions v0,v1,v2,vmin] [--runs 3] [--concurrency 4]
+//   pnpm eval [--video 1,2] [--case 1-recap] [--versions current,v1,vmin] [--runs 3] [--concurrency 4]
 // Needs E2E_LLM_API_KEY (a DeepSeek key) in .env.local. Results go to eval/results/<case>/<version>-<run>.json;
 // existing results are kept, so an interrupted run continues where it stopped.
 import { existsSync } from 'node:fs';
@@ -7,13 +7,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import type { Message } from '@earendil-works/pi-ai';
 import { runAgent } from '@/lib/llm/agent';
+import * as current from '@/lib/llm/prompt';
 import { resolveModel } from '@/lib/llm/providers';
 import type { PresetId, Transcript, VideoRef } from '@/lib/types';
 import { EVAL, loadCases, loadVideos, type Case, type Result, type Turn } from './data';
-import * as v0 from './variants/v0';
 import * as v1 from './variants/v1';
-import * as v2 from './variants/v2';
-import * as v2_1 from './variants/v2.1';
 import * as vmin from './variants/vmin';
 
 type Search = 'server' | 'client' | 'off';
@@ -21,7 +19,7 @@ interface Variant {
   buildSystemPrompt(video: VideoRef, transcript: Transcript, outputLanguage: string, search?: Search): string;
   buildUserPrompt(text: string, preset?: PresetId, playbackSeconds?: number): string;
 }
-const VARIANTS = { v0, v1, v2, 'v2.1': v2_1, vmin } as Record<string, Variant>;
+const VARIANTS = { current, v1, vmin } as Record<string, Variant>;
 
 const MODEL = 'deepseek-flash';
 // What the extension sends with a Simplified Chinese browser (resolveOutputLanguage).
@@ -35,7 +33,7 @@ const { values: args } = parseArgs({
   options: {
     video: { type: 'string' },
     case: { type: 'string' },
-    versions: { type: 'string', default: 'v0,v1,v2,vmin' },
+    versions: { type: 'string', default: 'current,v1,vmin' },
     runs: { type: 'string', default: '3' },
     concurrency: { type: 'string', default: '4' },
   },
@@ -92,8 +90,8 @@ async function answer(
 
 async function runCase(c: Case, version: string, run: number, material: { video: VideoRef; transcript: Transcript }): Promise<Result> {
   const variant = VARIANTS[version]!;
-  // Search is available (DeepSeek) but off unless the case turns it on; only v2 and v2.1 know about "off".
-  const search: Search | undefined = c.search ? 'server' : version.startsWith('v2') ? 'off' : undefined;
+  // Search is available (DeepSeek) but off unless the case turns it on; current knows about "off".
+  const search: Search | undefined = c.search ? 'server' : version === 'current' ? 'off' : undefined;
   const systemPrompt = variant.buildSystemPrompt(material.video, material.transcript, OUTPUT_LANGUAGE, search);
   const sessionId = `${c.id}-${version}-${run}`;
   const turns: Turn[] = [];

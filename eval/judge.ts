@@ -1,6 +1,6 @@
 // Blind pairwise judging for the prompt eval (docs/PROMPT-EVAL.md): each version's answer from one run
 // (the first unless --run) against the baseline's from the same run, sides shuffled. Results go to eval/results/<case>/judge-<version>.json.
-//   pnpm eval:judge [--video 1] [--case 1-recap] [--run 2] [--concurrency 4]
+//   pnpm eval:judge [--video 1] [--case 1-recap] [--versions v3c] [--run 2] [--concurrency 4]
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -13,14 +13,20 @@ import type { Judgement } from './report';
 
 const JUDGE_MODEL = 'deepseek-v4-pro';
 const BASELINE = 'v1';
-const VERSIONS = ['v2.1'];
+const DEFAULT_VERSIONS = 'current';
 const MAX_EXCERPT_LINES = 80;
 
 globalThis.requestAnimationFrame ??= (callback) => setTimeout(() => callback(performance.now()), 16) as unknown as number;
 globalThis.cancelAnimationFrame ??= (id) => clearTimeout(id);
 
 const { values: args } = parseArgs({
-  options: { video: { type: 'string' }, case: { type: 'string' }, run: { type: 'string', default: '1' }, concurrency: { type: 'string', default: '4' } },
+  options: {
+    video: { type: 'string' },
+    case: { type: 'string' },
+    versions: { type: 'string', default: DEFAULT_VERSIONS },
+    run: { type: 'string', default: '1' },
+    concurrency: { type: 'string', default: '4' },
+  },
 });
 
 const apiKey = process.env.E2E_LLM_API_KEY;
@@ -126,8 +132,9 @@ async function main() {
   const cases = (await loadCases()).filter(
     (c) => (!videoFilter || videoFilter.has(String(c.video))) && (!caseFilter || caseFilter.has(c.id)),
   );
+  const versions = args.versions!.split(',');
   const jobs = cases.flatMap((c) =>
-    VERSIONS.map((version) => ({ c, version, file: new URL(`results/${c.id}/judge-${version}${args.run === '1' ? '' : `-${args.run}`}.json`, EVAL) })).filter((j) => !existsSync(j.file)),
+    versions.map((version) => ({ c, version, file: new URL(`results/${c.id}/judge-${version}${args.run === '1' ? '' : `-${args.run}`}.json`, EVAL) })).filter((j) => !existsSync(j.file)),
   );
   console.log(`${jobs.length} pairs to judge`);
   let cost = 0;

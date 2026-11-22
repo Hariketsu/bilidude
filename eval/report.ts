@@ -15,7 +15,7 @@ import { parseTimestamp, TIMESTAMP_PATTERN } from '@/lib/render/timestamp';
 import { createTranscriptCheck } from '@/lib/render/transcriptCheck';
 import { EVAL, loadCases, loadVideos, type Case, type Result } from './data';
 
-const VERSIONS = ['v0', 'v1', 'v2', 'v2.1', 'vmin'];
+const VERSION_ORDER = ['v0', 'v1', 'v2', 'v2.1', 'v3a', 'v3b', 'v3c', 'current', 'vmin'];
 const BASELINE = 'v1';
 
 export interface Judgement {
@@ -183,24 +183,24 @@ function cell(answers: Answer[], stat: Stat, percent?: boolean): string {
   return `${fmt(avg, percent)} ${range}`;
 }
 
-function metricsTable(answers: Answer[], categories: string[]): string {
+function metricsTable(answers: Answer[], categories: string[], versions: string[]): string {
   const rows = METRICS.map(({ label, note, categories: only, stat, percent }) => {
     const scope = only ? answers.filter((a) => only.includes(a.category)) : answers;
     const head = `<th>${label}${note ? `<br><small>${note}</small>` : ''}${only ? `<br><small>${only.join(', ')}</small>` : ''}</th>`;
-    const overall = `<tr>${head}${VERSIONS.map((v) => `<td>${cell(scope.filter((a) => a.version === v), stat, percent)}</td>`).join('')}</tr>`;
+    const overall = `<tr>${head}${versions.map((v) => `<td>${cell(scope.filter((a) => a.version === v), stat, percent)}</td>`).join('')}</tr>`;
     const perCategory = (only ?? categories)
       .filter((cat) => scope.some((a) => a.category === cat))
       .map(
         (cat) =>
-          `<tr class="sub"><th>${cat}</th>${VERSIONS.map((v) => `<td>${cell(scope.filter((a) => a.version === v && a.category === cat), stat, percent)}</td>`).join('')}</tr>`,
+          `<tr class="sub"><th>${cat}</th>${versions.map((v) => `<td>${cell(scope.filter((a) => a.version === v && a.category === cat), stat, percent)}</td>`).join('')}</tr>`,
       );
     return `<tbody>${overall}${perCategory.length > 1 ? perCategory.join('') : ''}</tbody>`;
   });
-  return `<table class="metrics"><thead><tr><th></th>${VERSIONS.map((v) => `<th>${v}</th>`).join('')}</tr></thead>${rows.join('')}</table>`;
+  return `<table class="metrics"><thead><tr><th></th>${versions.map((v) => `<th>${v}</th>`).join('')}</tr></thead>${rows.join('')}</table>`;
 }
 
-function judgeTable(cases: Case[], judgements: Map<string, Judgement[]>): string {
-  const rows = VERSIONS.filter((v) => v !== BASELINE).map((version) => {
+function judgeTable(cases: Case[], judgements: Map<string, Judgement[]>, versions: string[]): string {
+  const rows = versions.filter((v) => v !== BASELINE).map((version) => {
     const tally = (filter: (c: Case) => boolean) => {
       const js = cases.filter(filter).flatMap((c) => (judgements.get(c.id) ?? []).filter((j) => j.version === version));
       if (!js.length) return '–';
@@ -227,7 +227,7 @@ function badges(m: Metrics): string {
   return `<div class="badges">${parts.join(' · ')}</div>`;
 }
 
-function caseSection(c: Case, answers: Answer[], judgements: Judgement[]): string {
+function caseSection(c: Case, answers: Answer[], judgements: Judgement[], versions: string[]): string {
   const question = [c.preset ? `预设：${c.preset}` : '', c.text ?? '', c.playback !== undefined ? `（播放位置 ${c.playback}s）` : '', c.search ? '（搜索开）' : '']
     .filter(Boolean)
     .join(' ');
@@ -245,14 +245,14 @@ function caseSection(c: Case, answers: Answer[], judgements: Judgement[]): strin
   };
   const verdicts = judgements.length
     ? `<ul class="judge">${judgements
-        .sort((a, b) => VERSIONS.indexOf(a.version) - VERSIONS.indexOf(b.version))
+        .sort((a, b) => versions.indexOf(a.version) - versions.indexOf(b.version))
         .map((j) => `<li><b>${j.version} 对 ${BASELINE}</b>：${j.winner === 'tie' ? '差不多' : `${j.winner} 更好`}。${esc(j.reason)}</li>`)
         .join('')}</ul>`
     : '';
-  return `<section id="${c.id}"><h3>${c.id} <small>${c.category}</small></h3><p class="q">${esc(question)}${c.followUp ? `<br>追问：${esc(c.followUp)}` : ''}</p>${verdicts}<div class="grid">${VERSIONS.map(column).join('')}</div></section>`;
+  return `<section id="${c.id}"><h3>${c.id} <small>${c.category}</small></h3><p class="q">${esc(question)}${c.followUp ? `<br>追问：${esc(c.followUp)}` : ''}</p>${verdicts}<div class="grid">${versions.map(column).join('')}</div></section>`;
 }
 
-const STYLE = `
+const style = (columns: number) => `
 body { font: 14px/1.6 -apple-system, "PingFang SC", sans-serif; margin: 24px; color: #222; }
 table.metrics { border-collapse: collapse; margin: 12px 0 28px; }
 table.metrics th, table.metrics td { border: 1px solid #ddd; padding: 4px 10px; text-align: left; vertical-align: top; }
@@ -260,7 +260,7 @@ table.metrics tr.sub th { font-weight: normal; padding-left: 24px; color: #666; 
 small { color: #888; font-weight: normal; }
 section { border-top: 2px solid #eee; margin-top: 32px; padding-top: 8px; }
 .q { font-size: 15px; }
-.grid { display: grid; grid-template-columns: repeat(${VERSIONS.length}, minmax(320px, 1fr)); gap: 16px; overflow-x: auto; }
+.grid { display: grid; grid-template-columns: repeat(${Math.max(1, columns)}, minmax(320px, 1fr)); gap: 16px; overflow-x: auto; }
 .col { background: #fafafa; border-radius: 8px; padding: 8px 12px; min-width: 0; }
 .answer { font-size: 13px; }
 .answer table { border-collapse: collapse; } .answer td, .answer th { border: 1px solid #ddd; padding: 2px 6px; }
@@ -286,19 +286,21 @@ async function main() {
       answers.push({ c, version: result.version, run: result.run, turn, category: turn ? 'follow-up' : c.category, ...analyze(t.text, t, check) });
     }
   }
+  const present = new Set(answers.map((a) => a.version));
+  const versions = [...VERSION_ORDER.filter((v) => present.has(v)), ...[...present].filter((v) => !VERSION_ORDER.includes(v)).sort()];
   const ran = cases.filter((c) => answers.some((a) => a.c.id === c.id));
   const categories = [...new Set(answers.map((a) => a.category))];
   const cost = results.reduce((n, r) => n + r.turns.reduce((m, t) => m + t.usage.cost, 0), 0);
   const runs = [...new Set(results.map((r) => r.run))].length;
 
-  const html = `<!doctype html><meta charset="utf-8"><title>提示词评测</title><style>${STYLE}</style>
+  const html = `<!doctype html><meta charset="utf-8"><title>提示词评测</title><style>${style(versions.length)}</style>
 <h1>提示词评测</h1>
 <p>${ran.length} 个用例 · ${answers.length} 个回答 · 每个版本最多 ${runs} 次 · 模型 ${results[0]?.model ?? '–'} · 回答花费 $${cost.toFixed(3)}。数值是各次的平均，小字是各次之间的范围。红框引用块是没通过校验、在扩展里会显示成普通文字的引文。</p>
-<h2>自动指标</h2>${metricsTable(answers, categories)}
-<h2>盲评（${BASELINE} 为基准，评委看第 1 次的回答）</h2>${judgements.size ? judgeTable(ran, judgements) : '<p>还没有盲评结果（pnpm eval:judge）。</p>'}
+<h2>自动指标</h2>${metricsTable(answers, categories, versions)}
+<h2>盲评（${BASELINE} 为基准，评委看第 1 次的回答）</h2>${judgements.size ? judgeTable(ran, judgements, versions) : '<p>还没有盲评结果（pnpm eval:judge）。</p>'}
 <h2>逐个用例</h2>
 <p>${ran.map((c) => `<a href="#${c.id}">${c.id}</a>`).join(' · ')}</p>
-${ran.map((c) => caseSection(c, answers.filter((a) => a.c.id === c.id), judgements.get(c.id) ?? [])).join('\n')}`;
+${ran.map((c) => caseSection(c, answers.filter((a) => a.c.id === c.id), judgements.get(c.id) ?? [], versions)).join('\n')}`;
   const out = new URL('results/report.html', EVAL);
   await writeFile(out, html);
   console.log(`Wrote ${out.pathname}`);
